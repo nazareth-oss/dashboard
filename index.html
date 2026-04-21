@@ -217,8 +217,7 @@ function setTag(msg) { document.getElementById('file-tag').textContent = msg; }
 async function getFileBuffer(shareUrl) {
   var b64 = btoa(shareUrl).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
   var metaUrl = 'https://api.onedrive.com/v1.0/shares/u!' + b64 + '/root';
-
-  var metaRes = await fetch(metaUrl);
+var metaRes = await fetch('https://corsproxy.io/?' + encodeURIComponent(metaUrl));
   if (!metaRes.ok) {
     var status = metaRes.status;
     if (status === 401 || status === 403) {
