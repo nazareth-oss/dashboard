@@ -97,7 +97,7 @@ tbody td{padding:7px 8px;font-size:12px}
         <div class="sn">3</div>
         <div class="sb">
           <strong>Paste the link below</strong>
-          <p>It looks like <code>https://1drv.ms/x/c/...</code> or <code>https://1drv.ms/x/s!...</code></p>
+          <p>It looks like <code>https://1drv.ms/x/c/...</code></p>
         </div>
       </div>
     </div>
@@ -156,7 +156,7 @@ tbody td{padding:7px 8px;font-size:12px}
 </div>
 
 <script>
-const STORE = 'geoff_free_v4';
+const STORE = 'geoff_free_v5';
 let cfg = {};
 try { cfg = JSON.parse(localStorage.getItem(STORE) || '{}'); } catch(e) {}
 
@@ -165,135 +165,110 @@ const TC = {
   'Breakup Psychology':'#7F77DD','Avoidant & No Contact':'#1D9E75','General Relationship':'#888780',
   'Relationship Advice & Mindset':'#D4537E','Rebuilding Relationship':'#5DCAA5'
 };
+let W='24h', charts={}, timer=null, parsedData=null;
 
-let W = '24h', charts = {}, timer = null, parsedData = null;
+window.addEventListener('load', function(){ if(cfg.shareUrl){showDash();loadData();} });
+function showDash(){document.getElementById('s-setup').classList.add('gone');document.getElementById('s-dash').classList.add('show');}
+function showSetup(){document.getElementById('s-setup').classList.remove('gone');document.getElementById('s-dash').classList.remove('show');}
+function showErr(msg){var el=document.getElementById('serr');el.textContent=msg;el.style.display='block';}
+function saveLink(){
+  var url=document.getElementById('surl').value.trim();
+  document.getElementById('serr').style.display='none';
+  if(!url){showErr('Please paste your OneDrive share link.');return;}
+  if(!url.startsWith('http')){showErr('Link should start with https://');return;}
+  cfg.shareUrl=url;localStorage.setItem(STORE,JSON.stringify(cfg));showDash();loadData();
+}
+function resetLink(){
+  if(!confirm('Remove this file link and start over?'))return;
+  clearTimeout(timer);localStorage.removeItem(STORE);cfg={};parsedData=null;
+  document.getElementById('surl').value='';showSetup();
+}
+function setSpin(on){document.getElementById('spin').classList.toggle('on',on);}
+function setStatus(msg){document.getElementById('last-refresh').textContent=msg;}
+function setTag(msg){document.getElementById('file-tag').textContent=msg;}
 
-window.addEventListener('load', function() {
-  if (cfg.shareUrl) { showDash(); loadData(); }
-});
+function isExcelBuffer(buf) {
+  // XLSX files are ZIP files starting with PK (0x50 0x4B)
+  var bytes = new Uint8Array(buf.slice(0,4));
+  return bytes[0]===0x50 && bytes[1]===0x4B;
+}
 
-function showDash() {
-  document.getElementById('s-setup').classList.add('gone');
-  document.getElementById('s-dash').classList.add('show');
-}
-function showSetup() {
-  document.getElementById('s-setup').classList.remove('gone');
-  document.getElementById('s-dash').classList.remove('show');
-}
-function showErr(msg) {
-  var el = document.getElementById('serr');
-  el.textContent = msg;
-  el.style.display = 'block';
-}
-function saveLink() {
-  var url = document.getElementById('surl').value.trim();
-  document.getElementById('serr').style.display = 'none';
-  if (!url) { showErr('Please paste your OneDrive share link.'); return; }
-  if (!url.startsWith('http')) { showErr('Link should start with https://'); return; }
-  cfg.shareUrl = url;
-  localStorage.setItem(STORE, JSON.stringify(cfg));
-  showDash();
-  loadData();
-}
-function resetLink() {
-  if (!confirm('Remove this file link and start over?')) return;
-  clearTimeout(timer);
-  localStorage.removeItem(STORE);
-  cfg = {};
-  parsedData = null;
-  document.getElementById('surl').value = '';
-  showSetup();
-}
-function setSpin(on) { document.getElementById('spin').classList.toggle('on', on); }
-function setStatus(msg) { document.getElementById('last-refresh').textContent = msg; }
-function setTag(msg) { document.getElementById('file-tag').textContent = msg; }
-
-// Tries multiple API endpoints and proxies until one works
 async function getFileBuffer(shareUrl) {
-  var b64 = btoa(shareUrl).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+  var proxies = [
+    'https://api.allorigins.win/raw?url=',
+    'https://corsproxy.io/?'
+  ];
 
-  // Both the modern Graph API and the legacy OneDrive API
-  var metaEndpoints = [
+  // METHOD 1: Fetch the share URL directly with download=1
+  // This works because OneDrive redirects to the actual file when download=1 is added
+  var dlUrl = shareUrl + (shareUrl.indexOf('?') >= 0 ? '&' : '?') + 'download=1';
+  for (var i=0; i<proxies.length; i++) {
+    try {
+      var res = await fetch(proxies[i] + encodeURIComponent(dlUrl));
+      if (res.ok) {
+        var buf = await res.arrayBuffer();
+        if (isExcelBuffer(buf)) return buf;
+      }
+    } catch(e) {}
+  }
+
+  // METHOD 2: Use the OneDrive Shares API (Graph API first, then legacy)
+  var b64 = btoa(shareUrl).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+  var endpoints = [
     'https://graph.microsoft.com/v1.0/shares/u!' + b64 + '/root',
     'https://api.onedrive.com/v1.0/shares/u!' + b64 + '/root'
   ];
-
-  // Multiple free CORS proxies as fallbacks
-  var proxies = [
-    'https://api.allorigins.win/raw?url=',
-    'https://corsproxy.io/?',
-    'https://proxy.cors.sh/'
-  ];
-
   var downloadUrl = null;
-
-  // Try every combination until we get a download URL
-  outer:
-  for (var pi = 0; pi < proxies.length; pi++) {
-    for (var ei = 0; ei < metaEndpoints.length; ei++) {
+  for (var pi=0; pi<proxies.length && !downloadUrl; pi++) {
+    for (var ei=0; ei<endpoints.length && !downloadUrl; ei++) {
       try {
-        var proxyUrl = proxies[pi] + encodeURIComponent(metaEndpoints[ei]);
-        var res = await fetch(proxyUrl);
-        if (!res.ok) continue;
-        var meta = await res.json();
-        // Graph API uses @microsoft.graph.downloadUrl, legacy uses @content.downloadUrl
-        downloadUrl = meta['@microsoft.graph.downloadUrl'] || meta['@content.downloadUrl'];
-        if (downloadUrl) break outer;
-      } catch(e) { /* try next */ }
+        var r = await fetch(proxies[pi] + encodeURIComponent(endpoints[ei]));
+        if (r.ok) {
+          var meta = await r.json();
+          downloadUrl = meta['@microsoft.graph.downloadUrl'] || meta['@content.downloadUrl'];
+        }
+      } catch(e) {}
     }
   }
-
-  if (!downloadUrl) {
-    throw new Error('Could not connect to OneDrive. Make sure the file is shared as "Anyone with the link — Can view" and try again.');
+  if (downloadUrl) {
+    for (var pi=0; pi<proxies.length; pi++) {
+      try {
+        var fr = await fetch(proxies[pi] + encodeURIComponent(downloadUrl));
+        if (fr.ok) { var b2=await fr.arrayBuffer(); if(isExcelBuffer(b2))return b2; }
+      } catch(e) {}
+    }
+    try { var dr=await fetch(downloadUrl); if(dr.ok){var b3=await dr.arrayBuffer();if(isExcelBuffer(b3))return b3;} } catch(e) {}
   }
 
-  // Now fetch the actual file, also trying proxies
-  for (var pi = 0; pi < proxies.length; pi++) {
-    try {
-      var fileRes = await fetch(proxies[pi] + encodeURIComponent(downloadUrl));
-      if (fileRes.ok) return fileRes.arrayBuffer();
-    } catch(e) { /* try next */ }
-  }
-
-  // Last resort: try direct (works if CORS allows it)
-  var directRes = await fetch(downloadUrl);
-  if (directRes.ok) return directRes.arrayBuffer();
-
-  throw new Error('Could not download the file. Check your share link is still valid.');
+  throw new Error('Could not load your file. Please check: (1) the share link is set to "Anyone with the link — Can view", and (2) you are sharing the file itself, not a folder.');
 }
 
 async function loadData() {
-  setSpin(true);
-  setStatus('Loading...');
-  clearTimeout(timer);
+  setSpin(true); setStatus('Loading...'); clearTimeout(timer);
   try {
     var buf = await getFileBuffer(cfg.shareUrl);
-    var wb = XLSX.read(buf, { type:'array', raw:true, cellDates:false });
-    var sheetName = null;
-    for (var i = 0; i < wb.SheetNames.length; i++) {
-      if (wb.SheetNames[i].trim().toUpperCase() === 'DATA GEOFF') { sheetName = wb.SheetNames[i]; break; }
-    }
-    if (!sheetName) throw new Error('Sheet "DATA GEOFF" not found. Sheets in your file: ' + wb.SheetNames.join(', '));
-    var rows = XLSX.utils.sheet_to_json(wb.Sheets[sheetName], { header:1, raw:true, defval:null });
-    if (rows.length < 2) throw new Error('No data found in sheet "DATA GEOFF".');
-    parsedData = parseRows(rows);
-    renderAll(parsedData);
-    var t = new Date();
-    setStatus('Updated ' + t.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}));
+    var wb = XLSX.read(buf,{type:'array',raw:true,cellDates:false});
+    var sheetName=null;
+    for(var i=0;i<wb.SheetNames.length;i++){if(wb.SheetNames[i].trim().toUpperCase()==='DATA GEOFF'){sheetName=wb.SheetNames[i];break;}}
+    if(!sheetName) throw new Error('Sheet "DATA GEOFF" not found. Sheets: '+wb.SheetNames.join(', '));
+    var rows=XLSX.utils.sheet_to_json(wb.Sheets[sheetName],{header:1,raw:true,defval:null});
+    if(rows.length<2) throw new Error('No data found in sheet "DATA GEOFF".');
+    parsedData=parseRows(rows); renderAll(parsedData);
+    var t=new Date();
+    setStatus('Updated '+t.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}));
     setTag('Live from Excel Online \u00b7 auto-checks every 30s');
   } catch(e) {
-    setStatus('\u26a0 ' + e.message);
-    setTag('Error \u2014 check your share link settings');
+    setStatus('\u26a0 '+e.message);
+    setTag('Error \u2014 check share link settings');
     console.error(e);
   } finally {
-    setSpin(false);
-    timer = setTimeout(loadData, 30000);
+    setSpin(false); timer=setTimeout(loadData,30000);
   }
 }
 
-function parseRows(rows) {
-  var rawH = rows[0].map(function(h){return String(h||'');});
-  var hMap = {};
+function parseRows(rows){
+  var rawH=rows[0].map(function(h){return String(h||'');});
+  var hMap={};
   rawH.forEach(function(h,i){hMap[h]=i;hMap[h.trim()]=i;hMap[h.trim().toLowerCase()]=i;});
   function ci(n){return hMap[n]!==undefined?hMap[n]:hMap[n.trim()]!==undefined?hMap[n.trim()]:hMap[n.trim().toLowerCase()]!==undefined?hMap[n.trim().toLowerCase()]:-1;}
   function cell(row,n){var i=ci(n);return i>=0?row[i]:null;}
@@ -306,29 +281,13 @@ function parseRows(rows) {
     if(!name||String(name).trim()==='')continue;
     var ns=String(name).trim().replace(/\n/g,'');
     if(ns.startsWith('Unnamed'))continue;
-    videos.push({
-      name:ns,
-      title_format:String(cell(r,'Title Format')||'').trim()||null,
-      hook:String(cell(r,'Emotional Hook')||'').trim()||null,
-      topic:String(cell(r,'TOPIC')||'').trim()||null,
-      pub_date:toDate(cell(r,'PUB_DATE')),
-      imp_24h:num(cell(r,'24h (IMP)')),views_24h:num(cell(r,'24h (View)')),
-      ctr_24h:nc(r,' 24hr CTR','24hr CTR'),ret_24h:num(cell(r,'Retention %')),
-      likes_24h:num(cell(r,'LIKES_24H')),comments_24h:num(cell(r,'COMMENTS_24H')),sub_gain_24h:num(cell(r,'SUB_GAIN_24H')),
-      imp_7d:nc(r,' 7D (IMP)','7D (IMP)'),views_7d:num(cell(r,'NEW (View)')),
-      ctr_7d:num(cell(r,'Total 7D CTR')),ret_7d:num(cell(r,'Retention % 7D')),
-      likes_7d:num(cell(r,'LIKES_7D')),comments_7d:num(cell(r,'COMMENTS_7D')),sub_gain_7d:num(cell(r,'SUB_GAIN_7D')),
-      imp_28d:num(cell(r,'28D (IMP)')),views_28d:num(cell(r,'28D (VIEW)')),
-      ctr_28d:num(cell(r,'CTR_ 28D')),ret_28d:num(cell(r,'Retention % 28D')),
-      likes_28d:num(cell(r,'LIKES_28D')),comments_28d:num(cell(r,'COMMENTS_28D')),sub_gain_28d:num(cell(r,'SUB_GAIN_28D'))
-    });
+    videos.push({name:ns,title_format:String(cell(r,'Title Format')||'').trim()||null,hook:String(cell(r,'Emotional Hook')||'').trim()||null,topic:String(cell(r,'TOPIC')||'').trim()||null,pub_date:toDate(cell(r,'PUB_DATE')),
+      imp_24h:num(cell(r,'24h (IMP)')),views_24h:num(cell(r,'24h (View)')),ctr_24h:nc(r,' 24hr CTR','24hr CTR'),ret_24h:num(cell(r,'Retention %')),likes_24h:num(cell(r,'LIKES_24H')),comments_24h:num(cell(r,'COMMENTS_24H')),sub_gain_24h:num(cell(r,'SUB_GAIN_24H')),
+      imp_7d:nc(r,' 7D (IMP)','7D (IMP)'),views_7d:num(cell(r,'NEW (View)')),ctr_7d:num(cell(r,'Total 7D CTR')),ret_7d:num(cell(r,'Retention % 7D')),likes_7d:num(cell(r,'LIKES_7D')),comments_7d:num(cell(r,'COMMENTS_7D')),sub_gain_7d:num(cell(r,'SUB_GAIN_7D')),
+      imp_28d:num(cell(r,'28D (IMP)')),views_28d:num(cell(r,'28D (VIEW)')),ctr_28d:num(cell(r,'CTR_ 28D')),ret_28d:num(cell(r,'Retention % 28D')),likes_28d:num(cell(r,'LIKES_28D')),comments_28d:num(cell(r,'COMMENTS_28D')),sub_gain_28d:num(cell(r,'SUB_GAIN_28D'))});
   }
   function avg(f){var v=videos.map(function(x){return x[f];}).filter(function(x){return x!=null&&!isNaN(x);});return v.length?v.reduce(function(a,b){return a+b;},0)/v.length:0;}
-  var bench={
-    '24h':{ctr:avg('ctr_24h'),imp:avg('imp_24h'),views:avg('views_24h'),ret:avg('ret_24h')},
-    '7d':{ctr:avg('ctr_7d'),imp:avg('imp_7d'),views:avg('views_7d'),ret:avg('ret_7d')},
-    '28d':{ctr:avg('ctr_28d'),imp:avg('imp_28d'),views:avg('views_28d'),ret:avg('ret_28d')}
-  };
+  var bench={'24h':{ctr:avg('ctr_24h'),imp:avg('imp_24h'),views:avg('views_24h'),ret:avg('ret_24h')},'7d':{ctr:avg('ctr_7d'),imp:avg('imp_7d'),views:avg('views_7d'),ret:avg('ret_7d')},'28d':{ctr:avg('ctr_28d'),imp:avg('imp_28d'),views:avg('views_28d'),ret:avg('ret_28d')}};
   return{videos:videos,bench:bench};
 }
 
@@ -343,22 +302,14 @@ function renderKPIs(videos,b){
   function a(f){var v=videos.map(function(x){return x[f];}).filter(function(x){return x!=null&&!isNaN(x);});return v.length?v.reduce(function(a,c){return a+c;},0)/v.length:0;}
   var aC=a('ctr_'+s),aI=a('imp_'+s),aV=a('views_'+s),aR=a('ret_'+s);
   function dd(val,bv){var p=bv>0?((val-bv)/bv*100):0;var c=p>=0?'var(--teal)':'var(--coral)';return '<span class="kpi-d" style="color:'+c+'">'+(p>=0?'+':'')+p.toFixed(0)+'% vs avg</span>';}
-  document.getElementById('kpis').innerHTML=[
-    {l:'Avg CTR',v:(aC*100).toFixed(1)+'%',d:dd(aC,b.ctr)},
-    {l:'Avg Impressions',v:(aI/1000).toFixed(1)+'K',d:dd(aI,b.imp)},
-    {l:'Avg Views',v:Math.round(aV).toLocaleString(),d:dd(aV,b.views)},
-    {l:'Avg Retention',v:(aR*100).toFixed(0)+'%',d:''}
-  ].map(function(k){return '<div class="kpi"><div class="kpi-l">'+k.l+'</div><div class="kpi-v">'+k.v+k.d+'</div></div>';}).join('');
+  document.getElementById('kpis').innerHTML=[{l:'Avg CTR',v:(aC*100).toFixed(1)+'%',d:dd(aC,b.ctr)},{l:'Avg Impressions',v:(aI/1000).toFixed(1)+'K',d:dd(aI,b.imp)},{l:'Avg Views',v:Math.round(aV).toLocaleString(),d:dd(aV,b.views)},{l:'Avg Retention',v:(aR*100).toFixed(0)+'%',d:''}].map(function(k){return '<div class="kpi"><div class="kpi-l">'+k.l+'</div><div class="kpi-v">'+k.v+k.d+'</div></div>';}).join('');
 }
 
 function renderTime(videos,b){
   dc('t');var s=sf();
   var sorted=videos.filter(function(v){return v['imp_'+s]!=null&&v.pub_date;}).sort(function(a,c){return new Date(a.pub_date)-new Date(c.pub_date);});
   var labels=sorted.map(function(v){return v.pub_date.slice(5);}),data=sorted.map(function(v){return v['imp_'+s];});
-  charts.t=new Chart(document.getElementById('c-time').getContext('2d'),{type:'bar',data:{labels:labels,datasets:[
-    {data:data,backgroundColor:data.map(function(d){return d>=b.imp?'rgba(55,138,221,.8)':'rgba(100,100,110,.38)';}),borderWidth:0,barPercentage:.8},
-    {data:Array(data.length).fill(b.imp),type:'line',borderColor:'#EF9F27',borderWidth:1.5,borderDash:[4,3],pointRadius:0,fill:false}
-  ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:function(c){return c.datasetIndex===0?' '+c.raw.toLocaleString()+' impr.'  :' '+Math.round(c.raw).toLocaleString()+' (avg)';  }}}},scales:{x:{ticks:{color:M,font:{size:9},autoSkip:true,maxRotation:45},grid:{display:false}},y:{ticks:{color:M,font:{size:9},callback:function(v){return(v/1000).toFixed(0)+'K';}},grid:{color:GR},border:{display:false}}}}});
+  charts.t=new Chart(document.getElementById('c-time').getContext('2d'),{type:'bar',data:{labels:labels,datasets:[{data:data,backgroundColor:data.map(function(d){return d>=b.imp?'rgba(55,138,221,.8)':'rgba(100,100,110,.38)';}),borderWidth:0,barPercentage:.8},{data:Array(data.length).fill(b.imp),type:'line',borderColor:'#EF9F27',borderWidth:1.5,borderDash:[4,3],pointRadius:0,fill:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:function(c){return c.datasetIndex===0?' '+c.raw.toLocaleString()+' impr.':' '+Math.round(c.raw).toLocaleString()+' (avg)';  }}}},scales:{x:{ticks:{color:M,font:{size:9},autoSkip:true,maxRotation:45},grid:{display:false}},y:{ticks:{color:M,font:{size:9},callback:function(v){return(v/1000).toFixed(0)+'K';}},grid:{color:GR},border:{display:false}}}}});
 }
 
 function renderScat(videos){
