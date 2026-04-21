@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Geoff — Live Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#0f0f11;--bg2:#18181c;--bg3:#222227;--text:#e8e8ec;--muted:#888892;--border:rgba(255,255,255,.08);--teal:#1D9E75;--coral:#D85A30;--amber:#EF9F27;--blue:#378ADD;--mono:'Courier New',monospace}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh}
+a{color:var(--blue);text-decoration:none}a:hover{text-decoration:underline}
+code{background:var(--bg3);padding:2px 8px;border-radius:5px;font-family:var(--mono);font-size:12px;color:#a8d4f5}
+#s-setup{display:flex;min-height:100vh;align-items:center;justify-content:center;padding:40px 20px}
+#s-setup.gone{display:none}
+.card{background:var(--bg2);border:0.5px solid var(--border);border-radius:14px;padding:36px;max-width:560px;width:100%}
+h2{font-size:20px;font-weight:500;margin-bottom:8px}
+.sub{color:var(--muted);font-size:14px;line-height:1.65;margin-bottom:26px}
+.steps{display:flex;flex-direction:column;margin-bottom:26px}
+.step{display:flex;gap:16px;padding:16px 0;border-bottom:0.5px solid var(--border)}
+.step:last-child{border-bottom:none}
+.sn{width:26px;height:26px;min-width:26px;border-radius:50%;background:var(--bg3);border:0.5px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:500;color:var(--muted);margin-top:2px}
+.sb strong{font-size:14px;font-weight:500;display:block;margin-bottom:4px}
+.sb p{font-size:13px;color:var(--muted);line-height:1.6}
+label{font-size:12px;color:var(--muted);display:block;margin-bottom:6px}
+input[type=text]{width:100%;background:var(--bg3);border:0.5px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--text);font-size:13px;outline:none}
+input[type=text]:focus{border-color:rgba(55,138,221,.5)}
+.hint{font-size:11px;color:var(--muted);margin:5px 0 14px}
+.btn{display:inline-flex;align-items:center;background:var(--blue);color:#fff;border:none;border-radius:8px;padding:11px 22px;font-size:14px;font-weight:500;cursor:pointer;transition:opacity .15s}
+.btn:hover{opacity:.85}
+.btn-sm{background:var(--bg3);color:var(--muted);border:0.5px solid var(--border);border-radius:7px;padding:6px 14px;font-size:12px;cursor:pointer}
+.btn-sm:hover{color:var(--text)}
+.err-msg{color:var(--coral);font-size:13px;margin-top:10px;line-height:1.5}
+#s-dash{display:none;flex-direction:column;padding:20px 22px;min-height:100vh}
+#s-dash.show{display:flex}
+.topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:10px}
+.tl h1{font-size:20px;font-weight:500}
+.tl .tag{font-size:11px;color:var(--muted);margin-top:2px}
+.tr{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.win-wrap{display:flex;gap:2px;background:var(--bg2);padding:3px;border-radius:8px}
+.win-btn{background:none;border:none;padding:5px 14px;font-size:12px;font-weight:500;border-radius:6px;cursor:pointer;color:var(--muted);transition:all .15s}
+.win-btn.active{background:var(--bg3);color:var(--text);border:0.5px solid var(--border)}
+.pill{font-size:11px;color:var(--muted);max-width:300px}
+.spin{width:13px;height:13px;border:2px solid var(--border);border-top-color:var(--blue);border-radius:50%;animation:spin .7s linear infinite;display:none}
+.spin.on{display:inline-block}
+@keyframes spin{to{transform:rotate(360deg)}}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px}
+.kpi{background:var(--bg2);border-radius:10px;padding:13px 15px}
+.kpi-l{font-size:10px;color:var(--muted);margin-bottom:5px}
+.kpi-v{font-size:22px;font-weight:500;font-family:var(--mono)}
+.kpi-d{font-size:11px;margin-left:5px}
+.row{display:grid;gap:13px;margin-bottom:13px}
+.r21{grid-template-columns:3fr 2fr}
+.req{grid-template-columns:1fr 1fr;align-items:start}
+.cb{background:var(--bg2);border-radius:10px;padding:14px}
+.ct{font-size:10px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin-bottom:9px}
+.cw{position:relative}
+.leg{display:flex;flex-wrap:wrap;gap:5px 12px;margin-top:7px}
+.li{display:flex;align-items:center;gap:4px;font-size:10px;color:var(--muted)}
+.ld{width:7px;height:7px;border-radius:50%}
+.tw{background:var(--bg2);border-radius:10px;padding:14px;overflow-x:auto;margin-bottom:10px}
+table{width:100%;border-collapse:collapse}
+thead th{font-size:10px;font-weight:400;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;padding:0 8px 8px;text-align:left;border-bottom:0.5px solid var(--border)}
+tbody tr{border-bottom:0.5px solid var(--border)}
+tbody tr:hover{background:rgba(255,255,255,.025)}
+tbody td{padding:7px 8px;font-size:12px}
+.above{color:var(--teal)}.below{color:var(--coral)}.neu{color:var(--muted)}.mono{font-family:var(--mono)}
+.tbadge{font-size:10px;padding:2px 6px;border-radius:4px;white-space:nowrap}
+.footer{font-size:11px;color:var(--muted);text-align:right;padding-bottom:20px}
+.lnk{background:none;border:none;color:var(--muted);font-size:11px;cursor:pointer;text-decoration:underline}
+.lnk:hover{color:var(--text)}
+@media(max-width:680px){.kpis{grid-template-columns:1fr 1fr}.r21,.req{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<div id="s-setup">
+  <div class="card">
+    <h2>Connect your Excel file</h2>
+    <p class="sub">No logins or accounts needed. Share your file from OneDrive and paste the link — one-time setup, takes 2 minutes.</p>
+    <div class="steps">
+      <div class="step">
+        <div class="sn">1</div>
+        <div class="sb">
+          <strong>Open your file in Excel Online</strong>
+          <p>Go to <a href="https://onedrive.live.com" target="_blank">onedrive.live.com</a>, find your sheet, and open it.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="sn">2</div>
+        <div class="sb">
+          <strong>Share with "Anyone with the link"</strong>
+          <p>Click the <strong>Share</strong> button (top right) &rarr; change permission to <strong>"Anyone with the link"</strong> &rarr; set to <strong>Can view</strong> &rarr; click <strong>Copy link</strong>.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="sn">3</div>
+        <div class="sb">
+          <strong>Paste the link below</strong>
+          <p>It looks like <code>https://1drv.ms/x/c/...</code> or <code>https://1drv.ms/x/s!...</code></p>
+        </div>
+      </div>
+    </div>
+    <label for="surl">OneDrive share link</label>
+    <input type="text" id="surl" placeholder="https://1drv.ms/x/c/...">
+    <div class="hint">Stored only in this browser. Your file stays private in OneDrive.</div>
+    <button class="btn" onclick="saveLink()">Connect &rarr;</button>
+    <div class="err-msg" id="serr" style="display:none"></div>
+  </div>
+</div>
+
+<div id="s-dash">
+  <div class="topbar">
+    <div class="tl">
+      <h1>Geoff &mdash; Channel Dashboard</h1>
+      <div class="tag" id="file-tag">Connecting to OneDrive...</div>
+    </div>
+    <div class="tr">
+      <span class="spin" id="spin"></span>
+      <span class="pill" id="last-refresh"></span>
+      <div class="win-wrap">
+        <button class="win-btn active" id="btn-24h" onclick="setWin('24h')">24H</button>
+        <button class="win-btn" id="btn-7d" onclick="setWin('7d')">7D</button>
+        <button class="win-btn" id="btn-28d" onclick="setWin('28d')">28D</button>
+      </div>
+      <button class="btn-sm" onclick="loadData()">&#8635; Refresh</button>
+    </div>
+  </div>
+  <div class="kpis" id="kpis"></div>
+  <div class="row r21">
+    <div class="cb">
+      <div class="ct">Impressions by publish date &nbsp;<span style="color:var(--amber)">&#8212; avg</span> &nbsp;<span style="color:var(--blue)">&#9632; above</span> &nbsp;<span style="color:#555">&#9632; below</span></div>
+      <div class="cw" style="height:210px"><canvas id="c-time" role="img" aria-label="Impressions by date">Impressions</canvas></div>
+    </div>
+    <div class="cb">
+      <div class="ct">CTR vs Retention</div>
+      <div class="cw" style="height:210px"><canvas id="c-scat" role="img" aria-label="CTR vs Retention">Scatter</canvas></div>
+      <div class="leg" id="scat-leg"></div>
+    </div>
+  </div>
+  <div class="row req">
+    <div class="cb">
+      <div class="ct">Avg CTR by title format &nbsp;<span style="color:var(--teal)">&#9632; above avg</span> &nbsp;<span style="color:var(--coral)">&#9632; below</span></div>
+      <div class="cw" style="height:240px"><canvas id="c-fmt" role="img" aria-label="CTR by format">Format CTR</canvas></div>
+    </div>
+    <div class="cb">
+      <div class="ct">Avg impressions by topic</div>
+      <div class="cw" style="height:350px"><canvas id="c-top" role="img" aria-label="Impressions by topic">Topic</canvas></div>
+    </div>
+  </div>
+  <div class="tw">
+    <div class="ct" style="margin-bottom:10px">All videos &mdash; sorted by impressions &nbsp;<span style="color:var(--teal)">&#9632; above avg</span> &nbsp;<span style="color:var(--coral)">&#9632; below avg</span></div>
+    <div id="vtbl"></div>
+  </div>
+  <div class="footer">Checks for new data every 30 seconds &nbsp;&middot;&nbsp; <button class="lnk" onclick="resetLink()">Change file link</button></div>
+</div>
+
+<script>
+const STORE = 'geoff_free_v3';
+let cfg = {};
+try { cfg = JSON.parse(localStorage.getItem(STORE) || '{}'); } catch(e) {}
+
+const TC = {
+  'Getting Ex Back':'#378ADD','Marriage & Divorce':'#EF9F27','Affair & Infidelity':'#D85A30',
+  'Breakup Psychology':'#7F77DD','Avoidant & No Contact':'#1D9E75','General Relationship':'#888780',
+  'Relationship Advice & Mindset':'#D4537E','Rebuilding Relationship':'#5DCAA5'
+};
+
+let W = '24h', charts = {}, timer = null, parsedData = null;
+
+window.addEventListener('load', function() {
+  if (cfg.shareUrl) { showDash(); loadData(); }
+});
+
+function showDash() {
+  document.getElementById('s-setup').classList.add('gone');
+  document.getElementById('s-dash').classList.add('show');
+}
+function showSetup() {
+  document.getElementById('s-setup').classList.remove('gone');
+  document.getElementById('s-dash').classList.remove('show');
+}
+function showErr(msg) {
+  var el = document.getElementById('serr');
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+
+function saveLink() {
+  var url = document.getElementById('surl').value.trim();
+  document.getElementById('serr').style.display = 'none';
+  if (!url) { showErr('Please paste your OneDrive share link.'); return; }
+  if (!url.startsWith('http')) { showErr('Link should start with https://'); return; }
+  cfg.shareUrl = url;
+  localStorage.setItem(STORE, JSON.stringify(cfg));
+  showDash();
+  loadData();
+}
+
+function resetLink() {
+  if (!confirm('Remove this file link and start over?')) return;
+  clearTimeout(timer);
+  localStorage.removeItem(STORE);
+  cfg = {};
+  parsedData = null;
+  document.getElementById('surl').value = '';
+  showSetup();
+}
+
+function setSpin(on) { document.getElementById('spin').classList.toggle('on', on); }
+function setStatus(msg) { document.getElementById('last-refresh').textContent = msg; }
+function setTag(msg) { document.getElementById('file-tag').textContent = msg; }
+
+// Two-step OneDrive fetch:
+// Step 1 — get metadata (JSON, has CORS) to extract the real download URL
+// Step 2 — fetch the actual file from that URL
+async function getFileBuffer(shareUrl) {
+  var b64 = btoa(shareUrl).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  var metaUrl = 'https://api.onedrive.com/v1.0/shares/u!' + b64 + '/root';
+
+  var metaRes = await fetch(metaUrl);
+  if (!metaRes.ok) {
+    var status = metaRes.status;
+    if (status === 401 || status === 403) {
+      throw new Error('Access denied (' + status + '). Go back to OneDrive and make sure the share is set to "Anyone with the link — Can view".');
+    }
+    throw new Error('Could not reach OneDrive API (error ' + status + '). Check your share link is valid.');
+  }
+
+  var meta = await metaRes.json();
+  var downloadUrl = meta['@content.downloadUrl'];
+  if (!downloadUrl) {
+    throw new Error('Could not get download URL from OneDrive. Make sure the file is shared as "Anyone with the link".');
+  }
+
+  var fileRes = await fetch(downloadUrl);
+  if (!fileRes.ok) {
+    throw new Error('Could not download the file (error ' + fileRes.status + ').');
+  }
+  return fileRes.arrayBuffer();
+}
+
+async function loadData() {
+  setSpin(true);
+  setStatus('Loading...');
+  clearTimeout(timer);
+  try {
+    var buf = await getFileBuffer(cfg.shareUrl);
+    var wb = XLSX.read(buf, { type: 'array', raw: true, cellDates: false });
+
+    var sheetName = null;
+    for (var i = 0; i < wb.SheetNames.length; i++) {
+      if (wb.SheetNames[i].trim().toUpperCase() === 'DATA GEOFF') {
+        sheetName = wb.SheetNames[i];
+        break;
+      }
+    }
+    if (!sheetName) {
+      throw new Error('Sheet "DATA GEOFF" not found. Sheets in your file: ' + wb.SheetNames.join(', '));
+    }
+
+    var rows = XLSX.utils.sheet_to_json(wb.Sheets[sheetName], { header: 1, raw: true, defval: null });
+    if (rows.length < 2) throw new Error('No data found in sheet "DATA GEOFF".');
+
+    parsedData = parseRows(rows);
+    renderAll(parsedData);
+
+    var t = new Date();
+    setStatus('Updated ' + t.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+    setTag('Live from Excel Online \u00b7 auto-checks every 30s');
+  } catch(e) {
+    setStatus('\u26a0 ' + e.message);
+    setTag('Error \u2014 check your share link settings');
+    console.error(e);
+  } finally {
+    setSpin(false);
+    timer = setTimeout(loadData, 30000);
+  }
+}
+
+function parseRows(rows) {
+  var rawH = rows[0].map(function(h) { return String(h || ''); });
+  var hMap = {};
+  rawH.forEach(function(h, i) {
+    hMap[h] = i;
+    hMap[h.trim()] = i;
+    hMap[h.trim().toLowerCase()] = i;
+  });
+  function ci(name) {
+    return hMap[name] !== undefined ? hMap[name] :
+           hMap[name.trim()] !== undefined ? hMap[name.trim()] :
+           hMap[name.trim().toLowerCase()] !== undefined ? hMap[name.trim().toLowerCase()] : -1;
+  }
+  function cell(row, name) { var i = ci(name); return i >= 0 ? row[i] : null; }
+  function num(v) {
+    if (v === null || v === undefined || v === '') return null;
+    var n = parseFloat(v);
+    return isNaN(n) ? null : n;
+  }
+  function nc(row, a, b) { var v = num(cell(row, a)); return v !== null ? v : num(cell(row, b)); }
+  function toDate(v) {
+    if (!v) return null;
+    if (typeof v === 'number' && v > 40000) return new Date((v - 25569) * 86400000).toISOString().slice(0, 10);
+    if (typeof v === 'string') return v.slice(0, 10);
+    return null;
+  }
+
+  var videos = [];
+  for (var i = 1; i < rows.length; i++) {
+    var r = rows[i];
+    var name = cell(r, 'NAME');
+    if (!name || String(name).trim() === '') continue;
+    var nameStr = String(name).trim().replace(/\n/g, '');
+    if (nameStr.startsWith('Unnamed')) continue;
+    videos.push({
+      name: nameStr,
+      title_format: String(cell(r, 'Title Format') || '').trim() || null,
+      hook: String(cell(r, 'Emotional Hook') || '').trim() || null,
+      topic: String(cell(r, 'TOPIC') || '').trim() || null,
+      pub_date: toDate(cell(r, 'PUB_DATE')),
+      imp_24h:      num(cell(r, '24h (IMP)')),
+      views_24h:    num(cell(r, '24h (View)')),
+      ctr_24h:      nc(r, ' 24hr CTR', '24hr CTR'),
+      ret_24h:      num(cell(r, 'Retention %')),
+      likes_24h:    num(cell(r, 'LIKES_24H')),
+      comments_24h: num(cell(r, 'COMMENTS_24H')),
+      sub_gain_24h: num(cell(r, 'SUB_GAIN_24H')),
+      imp_7d:       nc(r, ' 7D (IMP)', '7D (IMP)'),
+      views_7d:     num(cell(r, 'NEW (View)')),
+      ctr_7d:       num(cell(r, 'Total 7D CTR')),
+      ret_7d:       num(cell(r, 'Retention % 7D')),
+      likes_7d:     num(cell(r, 'LIKES_7D')),
+      comments_7d:  num(cell(r, 'COMMENTS_7D')),
+      sub_gain_7d:  num(cell(r, 'SUB_GAIN_7D')),
+      imp_28d:      num(cell(r, '28D (IMP)')),
+      views_28d:    num(cell(r, '28D (VIEW)')),
+      ctr_28d:      num(cell(r, 'CTR_ 28D')),
+      ret_28d:      num(cell(r, 'Retention % 28D')),
+      likes_28d:    num(cell(r, 'LIKES_28D')),
+      comments_28d: num(cell(r, 'COMMENTS_28D')),
+      sub_gain_28d: num(cell(r, 'SUB_GAIN_28D'))
+    });
+  }
+
+  function avg(f) {
+    var v = videos.map(function(x) { return x[f]; }).filter(function(x) { return x != null && !isNaN(x); });
+    return v.length ? v.reduce(function(a, b) { return a + b; }, 0) / v.length : 0;
+  }
+  var bench = {
+    '24h': { ctr: avg('ctr_24h'), imp: avg('imp_24h'), views: avg('views_24h'), ret: avg('ret_24h') },
+    '7d':  { ctr: avg('ctr_7d'),  imp: avg('imp_7d'),  views: avg('views_7d'),  ret: avg('ret_7d')  },
+    '28d': { ctr: avg('ctr_28d'), imp: avg('imp_28d'), views: avg('views_28d'), ret: avg('ret_28d') }
+  };
+  return { videos: videos, bench: bench };
+}
+
+function setWin(w) {
+  W = w;
+  ['24h','7d','28d'].forEach(function(x) {
+    document.getElementById('btn-' + x).classList.toggle('active', x === w);
+  });
+  if (parsedData) renderAll(parsedData);
+}
+
+function sf() { return W === '24h' ? '24h' : W === '7d' ? '7d' : '28d'; }
+var M = 'rgba(255,255,255,.42)', GR = 'rgba(255,255,255,.06)';
+function dc(k) { if (charts[k]) { charts[k].destroy(); delete charts[k]; } }
+
+function renderAll(d) {
+  var b = d.bench[W];
+  renderKPIs(d.videos, b);
+  renderTime(d.videos, b);
+  renderScat(d.videos);
+  renderFmt(d.videos, b);
+  renderTop(d.videos);
+  renderTable(d.videos, b);
+}
+
+function renderKPIs(videos, b) {
+  var s = sf();
+  function a(f) {
+    var v = videos.map(function(x) { return x[f]; }).filter(function(x) { return x != null && !isNaN(x); });
+    return v.length ? v.reduce(function(a,c) { return a+c; }, 0) / v.length : 0;
+  }
+  var aC = a('ctr_'+s), aI = a('imp_'+s), aV = a('views_'+s), aR = a('ret_'+s);
+  function dd(val, bv) {
+    var p = bv > 0 ? ((val - bv) / bv * 100) : 0;
+    var c = p >= 0 ? 'var(--teal)' : 'var(--coral)';
+    return '<span class="kpi-d" style="color:' + c + '">' + (p >= 0 ? '+' : '') + p.toFixed(0) + '% vs avg</span>';
+  }
+  document.getElementById('kpis').innerHTML = [
+    { l: 'Avg CTR',         v: (aC*100).toFixed(1)+'%',         d: dd(aC, b.ctr)   },
+    { l: 'Avg Impressions', v: (aI/1000).toFixed(1)+'K',        d: dd(aI, b.imp)   },
+    { l: 'Avg Views',       v: Math.round(aV).toLocaleString(),  d: dd(aV, b.views) },
+    { l: 'Avg Retention',   v: (aR*100).toFixed(0)+'%',         d: ''              }
+  ].map(function(k) {
+    return '<div class="kpi"><div class="kpi-l">'+k.l+'</div><div class="kpi-v">'+k.v+k.d+'</div></div>';
+  }).join('');
+}
+
+function renderTime(videos, b) {
+  dc('t');
+  var s = sf();
+  var sorted = videos.filter(function(v) { return v['imp_'+s] != null && v.pub_date; })
+    .sort(function(a,c) { return new Date(a.pub_date) - new Date(c.pub_date); });
+  var labels = sorted.map(function(v) { return v.pub_date.slice(5); });
+  var data = sorted.map(function(v) { return v['imp_'+s]; });
+  var avgLine = Array(data.length).fill(b.imp);
+  charts.t = new Chart(document.getElementById('c-time').getContext('2d'), {
+    type: 'bar',
+    data: { labels: labels, datasets: [
+      { data: data, backgroundColor: data.map(function(d) { return d >= b.imp ? 'rgba(55,138,221,.8)' : 'rgba(100,100,110,.38)'; }), borderWidth: 0, barPercentage: .8 },
+      { data: avgLine, type: 'line', borderColor: '#EF9F27', borderWidth: 1.5, borderDash: [4,3], pointRadius: 0, fill: false }
+    ]},
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: function(c) { return c.datasetIndex === 0 ? ' ' + c.raw.toLocaleString() + ' impr.' : ' ' + Math.round(c.raw).toLocaleString() + ' (avg)'; } } } },
+      scales: {
+        x: { ticks: { color: M, font: { size: 9 }, autoSkip: true, maxRotation: 45 }, grid: { display: false } },
+        y: { ticks: { color: M, font: { size: 9 }, callback: function(v) { return (v/1000).toFixed(0)+'K'; } }, grid: { color: GR }, border: { display: false } }
+      }
+    }
+  });
+}
+
+function renderScat(videos) {
+  dc('sc');
+  var s = sf();
+  var topics = [];
+  videos.forEach(function(v) { if (v.topic && topics.indexOf(v.topic) < 0) topics.push(v.topic); });
+  var datasets = topics.map(function(t) {
+    return {
+      label: t,
+      data: videos.filter(function(v) { return v.topic === t && v['ctr_'+s] != null && v['ret_'+s] != null; })
+                  .map(function(v) { return { x: +(v['ctr_'+s]*100).toFixed(2), y: +(v['ret_'+s]*100).toFixed(1), n: v.name }; }),
+      backgroundColor: (TC[t] || '#888') + 'BB',
+      pointRadius: 6, pointHoverRadius: 9
+    };
+  }).filter(function(d) { return d.data.length > 0; });
+  charts.sc = new Chart(document.getElementById('c-scat').getContext('2d'), {
+    type: 'scatter', data: { datasets: datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false, layout: { padding: 10 },
+      plugins: { legend: { display: false }, tooltip: { callbacks: {
+        title: function(c) { var n = c[0].raw.n; return n.slice(0, 38) + (n.length > 38 ? '...' : ''); },
+        label: function(c) { return 'CTR: ' + c.raw.x.toFixed(1) + '%  Ret: ' + c.raw.y.toFixed(0) + '%'; }
+      }}},
+      scales: {
+        x: { title: { display: true, text: 'CTR %', color: M, font: { size: 9 } }, ticks: { color: M, font: { size: 9 }, callback: function(v) { return v+'%'; } }, grid: { color: GR } },
+        y: { title: { display: true, text: 'Retention %', color: M, font: { size: 9 } }, ticks: { color: M, font: { size: 9 }, callback: function(v) { return v+'%'; } }, grid: { color: GR } }
+      }
+    }
+  });
+  document.getElementById('scat-leg').innerHTML = datasets.map(function(d) {
+    return '<span class="li"><span class="ld" style="background:' + (TC[d.label]||'#888') + '"></span>' + d.label + '</span>';
+  }).join('');
+}
+
+function grpAvg(videos, kFn, vFn) {
+  var m = {};
+  videos.forEach(function(v) {
+    var k = kFn(v), val = vFn(v);
+    if (!k || val == null || isNaN(val)) return;
+    if (!m[k]) m[k] = [];
+    m[k].push(val);
+  });
+  var result = {};
+  Object.keys(m).forEach(function(k) {
+    result[k] = m[k].reduce(function(a,b) { return a+b; }, 0) / m[k].length;
+  });
+  return result;
+}
+
+function renderFmt(videos, b) {
+  dc('f');
+  var s = sf();
+  var raw = grpAvg(videos, function(v) { return v.title_format; }, function(v) { return v['ctr_'+s]; });
+  var e = Object.keys(raw).map(function(k) { return [k, raw[k]]; }).sort(function(a,c) { return c[1]-a[1]; });
+  charts.f = new Chart(document.getElementById('c-fmt').getContext('2d'), {
+    type: 'bar',
+    data: { labels: e.map(function(x) { return x[0]; }), datasets: [{ data: e.map(function(x) { return +(x[1]*100).toFixed(2); }), backgroundColor: e.map(function(x) { return x[1] >= b.ctr ? 'rgba(29,158,117,.8)' : 'rgba(216,90,48,.8)'; }), borderWidth: 0 }] },
+    options: {
+      indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: function(c) { return ' ' + c.raw.toFixed(1) + '% avg CTR'; } } } },
+      scales: {
+        x: { ticks: { color: M, font: { size: 9 }, callback: function(v) { return v+'%'; } }, grid: { color: GR }, border: { display: false } },
+        y: { ticks: { color: '#e8e8ec', font: { size: 11 } }, grid: { display: false } }
+      }
+    }
+  });
+}
+
+function renderTop(videos) {
+  dc('tp');
+  var s = sf();
+  var raw = grpAvg(videos, function(v) { return v.topic; }, function(v) { return v['imp_'+s]; });
+  var e = Object.keys(raw).map(function(k) { return [k, raw[k]]; }).sort(function(a,c) { return c[1]-a[1]; });
+  charts.tp = new Chart(document.getElementById('c-top').getContext('2d'), {
+    type: 'bar',
+    data: { labels: e.map(function(x) { return x[0]; }), datasets: [{ data: e.map(function(x) { return Math.round(x[1]); }), backgroundColor: e.map(function(x) { return (TC[x[0]]||'#888')+'BB'; }), borderWidth: 0 }] },
+    options: {
+      indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: function(c) { return ' ' + c.raw.toLocaleString() + ' avg impr.'; } } } },
+      scales: {
+        x: { ticks: { color: M, font: { size: 9 }, callback: function(v) { return (v/1000).toFixed(0)+'K'; } }, grid: { color: GR }, border: { display: false } },
+        y: { ticks: { color: '#e8e8ec', font: { size: 11 } }, grid: { display: false } }
+      }
+    }
+  });
+}
+
+function renderTable(videos, b) {
+  var s = sf();
+  var sorted = videos.filter(function(v) { return v['imp_'+s] != null; })
+    .sort(function(a,c) { return c['imp_'+s] - a['imp_'+s]; });
+  function cls(val, bv) { return (val != null && val >= bv) ? 'above' : 'below'; }
+  var rows = sorted.map(function(v, i) {
+    var imp = v['imp_'+s], views = v['views_'+s], ctr = v['ctr_'+s], ret = v['ret_'+s], likes = v['likes_'+s];
+    var nm = v.name, sh = nm.length > 54 ? nm.slice(0,54)+'...' : nm;
+    var tc = TC[v.topic] || '#888';
+    return '<tr>' +
+      '<td class="neu mono" style="width:26px">'+(i+1)+'</td>' +
+      '<td title="'+nm.replace(/"/g,'&quot;')+'" style="max-width:260px">'+sh+'</td>' +
+      '<td><span class="tbadge" style="background:'+tc+'22;color:'+tc+'">'+(v.topic||'&mdash;')+'</span></td>' +
+      '<td class="mono '+cls(imp,b.imp)+'">'+(imp!=null?(imp/1000).toFixed(1)+'K':'&mdash;')+'</td>' +
+      '<td class="mono '+cls(views,b.views)+'">'+(views!=null?Math.round(views).toLocaleString():'&mdash;')+'</td>' +
+      '<td class="mono '+cls(ctr,b.ctr)+'" style="font-weight:600">'+(ctr!=null?(ctr*100).toFixed(1)+'%':'&mdash;')+'</td>' +
+      '<td class="mono">'+(ret!=null?(ret*100).toFixed(0)+'%':'&mdash;')+'</td>' +
+      '<td class="mono neu">'+(likes!=null?Math.round(likes):'&mdash;')+'</td>' +
+      '</tr>';
+  }).join('');
+  document.getElementById('vtbl').innerHTML =
+    '<table><thead><tr>' +
+    ['#','Title','Topic','Impressions','Views','CTR','Retention','Likes'].map(function(h) { return '<th>'+h+'</th>'; }).join('') +
+    '</tr></thead><tbody>' + rows + '</tbody></table>';
+}
+</script>
+</body>
+</html>
