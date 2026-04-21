@@ -90,7 +90,7 @@ tbody td{padding:7px 8px;font-size:12px}
         <div class="sn">2</div>
         <div class="sb">
           <strong>Publish the "DATA GEOFF" sheet</strong>
-          <p>Click <strong>File &rarr; Share &rarr; Publish to web</strong> &rarr; change the first dropdown from "Entire Document" to <strong>"DATA GEOFF"</strong> &rarr; change the second dropdown to <strong>CSV</strong> &rarr; click <strong>Publish</strong> &rarr; copy the link.</p>
+          <p>Click <strong>File &rarr; Share &rarr; Publish to web</strong> &rarr; change the first dropdown to <strong>"DATA GEOFF"</strong> &rarr; second dropdown to <strong>CSV</strong> &rarr; click <strong>Publish</strong> &rarr; copy the link.</p>
         </div>
       </div>
       <div class="step">
@@ -156,18 +156,13 @@ tbody td{padding:7px 8px;font-size:12px}
 </div>
 
 <script>
-const STORE = 'geoff_gs_v1';
-let cfg = {};
-try { cfg = JSON.parse(localStorage.getItem(STORE) || '{}'); } catch(e) {}
+const STORE='geoff_gs_v2';
+let cfg={};
+try{cfg=JSON.parse(localStorage.getItem(STORE)||'{}');}catch(e){}
+const TC={'Getting Ex Back':'#378ADD','Marriage & Divorce':'#EF9F27','Affair & Infidelity':'#D85A30','Breakup Psychology':'#7F77DD','Avoidant & No Contact':'#1D9E75','General Relationship':'#888780','Relationship Advice & Mindset':'#D4537E','Rebuilding Relationship':'#5DCAA5'};
+let W='24h',charts={},timer=null,parsedData=null;
 
-const TC = {
-  'Getting Ex Back':'#378ADD','Marriage & Divorce':'#EF9F27','Affair & Infidelity':'#D85A30',
-  'Breakup Psychology':'#7F77DD','Avoidant & No Contact':'#1D9E75','General Relationship':'#888780',
-  'Relationship Advice & Mindset':'#D4537E','Rebuilding Relationship':'#5DCAA5'
-};
-let W='24h', charts={}, timer=null, parsedData=null;
-
-window.addEventListener('load', function(){ if(cfg.csvUrl){showDash();loadData();} });
+window.addEventListener('load',function(){if(cfg.csvUrl){showDash();loadData();}});
 function showDash(){document.getElementById('s-setup').classList.add('gone');document.getElementById('s-dash').classList.add('show');}
 function showSetup(){document.getElementById('s-setup').classList.remove('gone');document.getElementById('s-dash').classList.remove('show');}
 function showErr(msg){var el=document.getElementById('serr');el.textContent=msg;el.style.display='block';}
@@ -176,86 +171,88 @@ function saveLink(){
   var url=document.getElementById('surl').value.trim();
   document.getElementById('serr').style.display='none';
   if(!url){showErr('Please paste your Google Sheets publish link.');return;}
-  if(!url.includes('docs.google.com/spreadsheets')){showErr('That doesn\'t look like a Google Sheets link. It should contain "docs.google.com/spreadsheets".');return;}
-  // Convert any Google Sheets URL to a CSV export URL
-  cfg.csvUrl = toCsvUrl(url);
+  if(!url.includes('docs.google.com/spreadsheets')){showErr('That doesn\'t look like a Google Sheets link.');return;}
+  cfg.csvUrl=toCsvUrl(url);
   localStorage.setItem(STORE,JSON.stringify(cfg));
-  showDash(); loadData();
+  showDash();loadData();
 }
-
-function toCsvUrl(url) {
-  // If already a publish/CSV URL, use as-is
-  if (url.includes('/pub?') || url.includes('output=csv') || url.includes('tqx=out:csv')) return url;
-  // Extract the sheet ID and construct CSV URL
-  var match = url.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/);
-  if (!match) return url;
-  var id = match[1];
-  return 'https://docs.google.com/spreadsheets/d/' + id + '/gviz/tq?tqx=out:csv&sheet=DATA%20GEOFF';
+function toCsvUrl(url){
+  if(url.includes('output=csv')||url.includes('tqx=out:csv'))return url;
+  var match=url.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/);
+  if(!match)return url;
+  return 'https://docs.google.com/spreadsheets/d/'+match[1]+'/gviz/tq?tqx=out:csv&sheet=DATA%20GEOFF';
 }
-
 function resetLink(){
   if(!confirm('Remove this sheet link and start over?'))return;
-  clearTimeout(timer); localStorage.removeItem(STORE); cfg={}; parsedData=null;
-  document.getElementById('surl').value=''; showSetup();
+  clearTimeout(timer);localStorage.removeItem(STORE);cfg={};parsedData=null;
+  document.getElementById('surl').value='';showSetup();
 }
 function setSpin(on){document.getElementById('spin').classList.toggle('on',on);}
 function setStatus(msg){document.getElementById('last-refresh').textContent=msg;}
 function setTag(msg){document.getElementById('file-tag').textContent=msg;}
 
 async function loadData(){
-  setSpin(true); setStatus('Loading...'); clearTimeout(timer);
-  try {
-    var res = await fetch(cfg.csvUrl);
-    if(!res.ok) throw new Error('Could not load sheet (error '+res.status+'). Make sure the sheet is published to the web as CSV.');
-    var text = await res.text();
-    if(text.trim().startsWith('<')) throw new Error('Got an HTML page instead of CSV data. Make sure you published the sheet using File \u2192 Share \u2192 Publish to web \u2192 CSV.');
-    parsedData = parseCsv(text);
+  setSpin(true);setStatus('Loading...');clearTimeout(timer);
+  try{
+    var res=await fetch(cfg.csvUrl);
+    if(!res.ok)throw new Error('Could not load sheet (error '+res.status+'). Make sure it is published as CSV.');
+    var text=await res.text();
+    if(text.trim().startsWith('<'))throw new Error('Got an HTML page instead of data. Re-publish the sheet using File \u2192 Share \u2192 Publish to web \u2192 CSV.');
+    parsedData=parseCsv(text);
     renderAll(parsedData);
     var t=new Date();
     setStatus('Updated '+t.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}));
     setTag('Live from Google Sheets \u00b7 auto-checks every 30s');
-  } catch(e){
+  }catch(e){
     setStatus('\u26a0 '+e.message);
     setTag('Error \u2014 check your sheet link');
     console.error(e);
-  } finally {
-    setSpin(false); timer=setTimeout(loadData,30000);
+  }finally{
+    setSpin(false);timer=setTimeout(loadData,30000);
   }
 }
 
-// Parse CSV text into rows array (handles quoted fields)
 function parseCsv(text){
-  var rows=[], cur=[], field='', inQ=false;
+  var rows=[],cur=[],field='',inQ=false;
   for(var i=0;i<text.length;i++){
     var c=text[i];
-    if(inQ){
-      if(c==='"'&&text[i+1]==='"'){field+='"';i++;}
-      else if(c==='"'){inQ=false;}
-      else{field+=c;}
-    } else {
-      if(c==='"'){inQ=true;}
-      else if(c===','){cur.push(field);field='';}
-      else if(c==='\n'){cur.push(field);rows.push(cur);cur=[];field='';}
-      else if(c==='\r'){}
-      else{field+=c;}
-    }
+    if(inQ){if(c==='"'&&text[i+1]==='"'){field+='"';i++;}else if(c==='"'){inQ=false;}else{field+=c;}}
+    else{if(c==='"'){inQ=true;}else if(c===','){cur.push(field);field='';}else if(c==='\n'){cur.push(field);rows.push(cur);cur=[];field='';}else if(c==='\r'){}else{field+=c;}}
   }
   if(field||cur.length){cur.push(field);rows.push(cur);}
   return buildData(rows);
 }
 
 function buildData(rows){
-  if(rows.length<2) throw new Error('No data found in the sheet.');
+  if(rows.length<2)throw new Error('No data found in the sheet.');
   var rawH=rows[0].map(function(h){return String(h||'');});
   var hMap={};
   rawH.forEach(function(h,i){hMap[h]=i;hMap[h.trim()]=i;hMap[h.trim().toLowerCase()]=i;});
   function ci(n){return hMap[n]!==undefined?hMap[n]:hMap[n.trim()]!==undefined?hMap[n.trim()]:hMap[n.trim().toLowerCase()]!==undefined?hMap[n.trim().toLowerCase()]:-1;}
   function cell(row,n){var i=ci(n);return i>=0?row[i]:null;}
-  function num(v){if(v===null||v===undefined||v===''||v==='#N/A'||v==='#VALUE!')return null;var n=parseFloat(String(v).replace(/[%,]/g,''));return isNaN(n)?null:n;}
-  function pct(v){if(v===null||v===undefined||v==='')return null;var s=String(v);if(s.endsWith('%'))return parseFloat(s)/100;return num(v);}
-  function nc(row,a,b){var v=num(cell(row,a));return v!==null?v:num(cell(row,b));}
-  function toDate(v){if(!v)return null;var s=String(v).trim();if(s.match(/^\d{4}-\d{2}-\d{2}/))return s.slice(0,10);if(s.match(/^\d{1,2}\/\d{1,2}\/\d{4}/)){var p=s.split('/');return p[2].slice(0,4)+'-'+p[0].padStart(2,'0')+'-'+p[1].padStart(2,'0');}return s.slice(0,10)||null;}
-
+  function num(v){
+    if(v===null||v===undefined||v===''||v==='#N/A'||v==='#VALUE!'||v==='#REF!')return null;
+    var n=parseFloat(String(v).replace(/[,%]/g,''));
+    return isNaN(n)?null:n;
+  }
+  // pct: handles both "6.70%" string and 0.067 decimal and 6.70 plain number
+  function pct(v){
+    if(v===null||v===undefined||v==='')return null;
+    var s=String(v).trim();
+    if(s.endsWith('%'))return parseFloat(s)/100;
+    var n=parseFloat(s);
+    if(isNaN(n))return null;
+    // if value is greater than 1, it's already in percentage form (e.g. 6.70 means 6.70%)
+    return n>1?n/100:n;
+  }
+  function nc(row,a,b){var v=cell(row,a);return(v!==null&&v!==undefined&&v!=='')?v:cell(row,b);}
+  function toDate(v){
+    if(!v)return null;
+    var s=String(v).trim();
+    if(s.match(/^\d{4}-\d{2}-\d{2}/))return s.slice(0,10);
+    if(s.match(/^\d{1,2}\/\d{1,2}\/\d{4}/)){var p=s.split('/');return p[2].slice(0,4)+'-'+p[0].padStart(2,'0')+'-'+p[1].padStart(2,'0');}
+    return s.slice(0,10)||null;
+  }
   var videos=[];
   for(var i=1;i<rows.length;i++){
     var r=rows[i],name=cell(r,'NAME');
@@ -270,12 +267,12 @@ function buildData(rows){
       pub_date:toDate(cell(r,'PUB_DATE')),
       imp_24h:num(cell(r,'24h (IMP)')),
       views_24h:num(cell(r,'24h (View)')),
-      ctr_24h:pct(nc(r,' 24hr CTR','24hr CTR')||cell(r,' 24hr CTR')||cell(r,'24hr CTR')),
+      ctr_24h:pct(nc(r,' 24hr CTR','24hr CTR')),
       ret_24h:pct(cell(r,'Retention %')),
       likes_24h:num(cell(r,'LIKES_24H')),
       comments_24h:num(cell(r,'COMMENTS_24H')),
       sub_gain_24h:num(cell(r,'SUB_GAIN_24H')),
-      imp_7d:num(nc(r,' 7D (IMP)','7D (IMP)')||cell(r,' 7D (IMP)')||cell(r,'7D (IMP)')),
+      imp_7d:num(nc(r,' 7D (IMP)','7D (IMP)')),
       views_7d:num(cell(r,'NEW (View)')),
       ctr_7d:pct(cell(r,'Total 7D CTR')),
       ret_7d:pct(cell(r,'Retention % 7D')),
@@ -291,7 +288,7 @@ function buildData(rows){
       sub_gain_28d:num(cell(r,'SUB_GAIN_28D'))
     });
   }
-  if(!videos.length) throw new Error('No video rows found. Check the sheet name is exactly "DATA GEOFF".');
+  if(!videos.length)throw new Error('No video rows found. Check the sheet tab is named exactly "DATA GEOFF".');
   function avg(f){var v=videos.map(function(x){return x[f];}).filter(function(x){return x!=null&&!isNaN(x);});return v.length?v.reduce(function(a,b){return a+b;},0)/v.length:0;}
   var bench={
     '24h':{ctr:avg('ctr_24h'),imp:avg('imp_24h'),views:avg('views_24h'),ret:avg('ret_24h')},
@@ -327,7 +324,7 @@ function renderTime(videos,b){
   charts.t=new Chart(document.getElementById('c-time').getContext('2d'),{type:'bar',data:{labels:labels,datasets:[
     {data:data,backgroundColor:data.map(function(d){return d>=b.imp?'rgba(55,138,221,.8)':'rgba(100,100,110,.38)';}),borderWidth:0,barPercentage:.8},
     {data:Array(data.length).fill(b.imp),type:'line',borderColor:'#EF9F27',borderWidth:1.5,borderDash:[4,3],pointRadius:0,fill:false}
-  ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:function(c){return c.datasetIndex===0?' '+c.raw.toLocaleString()+' impr.':' '+Math.round(c.raw).toLocaleString()+' (avg)';  }}}},scales:{x:{ticks:{color:M,font:{size:9},autoSkip:true,maxRotation:45},grid:{display:false}},y:{ticks:{color:M,font:{size:9},callback:function(v){return(v/1000).toFixed(0)+'K';}},grid:{color:GR},border:{display:false}}}}});
+  ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:function(c){return c.datasetIndex===0?' '+c.raw.toLocaleString()+' impr.':' '+Math.round(c.raw).toLocaleString()+' (avg)';}}}},scales:{x:{ticks:{color:M,font:{size:9},autoSkip:true,maxRotation:45},grid:{display:false}},y:{ticks:{color:M,font:{size:9},callback:function(v){return(v/1000).toFixed(0)+'K';}},grid:{color:GR},border:{display:false}}}}});
 }
 
 function renderScat(videos){
@@ -351,7 +348,7 @@ function renderTop(videos){
   dc('tp');var s=sf();
   var raw=grpAvg(videos,function(v){return v.topic;},function(v){return v['imp_'+s];});
   var e=Object.keys(raw).map(function(k){return[k,raw[k]];}).sort(function(a,c){return c[1]-a[1];});
-  charts.tp=new Chart(document.getElementById('c-top').getContext('2d'),{type:'bar',data:{labels:e.map(function(x){return x[0];}),datasets:[{data:e.map(function(x){return Math.round(x[1]);}),backgroundColor:e.map(function(x){return(TC[x[0]]||'#888')+'BB';}),borderWidth:0}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:function(c){return' '+c.raw.toLocaleString()+' avg impr.';  }}}},scales:{x:{ticks:{color:M,font:{size:9},callback:function(v){return(v/1000).toFixed(0)+'K';}},grid:{color:GR},border:{display:false}},y:{ticks:{color:'#e8e8ec',font:{size:11}},grid:{display:false}}}}});
+  charts.tp=new Chart(document.getElementById('c-top').getContext('2d'),{type:'bar',data:{labels:e.map(function(x){return x[0];}),datasets:[{data:e.map(function(x){return Math.round(x[1]);}),backgroundColor:e.map(function(x){return(TC[x[0]]||'#888')+'BB';}),borderWidth:0}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:function(c){return' '+c.raw.toLocaleString()+' avg impr.';}}}},scales:{x:{ticks:{color:M,font:{size:9},callback:function(v){return(v/1000).toFixed(0)+'K';}},grid:{color:GR},border:{display:false}},y:{ticks:{color:'#e8e8ec',font:{size:11}},grid:{display:false}}}}});
 }
 
 function renderTable(videos,b){
