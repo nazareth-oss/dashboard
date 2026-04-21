@@ -3,14 +3,14 @@
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Geoff — Live Dashboard</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-:root{--bg:#0f0f11;--bg2:#18181c;--bg3:#222227;--text:#e8e8ec;--muted:#888892;--border:rgba(255,255,255,.08);--teal:#1D9E75;--coral:#D85A30;--amber:#EF9F27;--blue:#378ADD;--mono:'Courier New',monospace}
+:root{--bg:#0f0f11;--bg2:#18181c;--bg3:#222227;--text:#e8e8ec;--muted:#888892;--border:rgba(255,255,255,.08);--teal:#1D9E75;--coral:#D85A30;--amber:#EF9F27;--blue:#378ADD;--purple:#7F77DD;--pink:#D4537E;--mono:'Courier New',monospace}
 body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh}
 a{color:var(--blue);text-decoration:none}a:hover{text-decoration:underline}
 code{background:var(--bg3);padding:2px 8px;border-radius:5px;font-family:var(--mono);font-size:12px;color:#a8d4f5}
+/* SETUP */
 #s-setup{display:flex;min-height:100vh;align-items:center;justify-content:center;padding:40px 20px}
 #s-setup.gone{display:none}
 .card{background:var(--bg2);border:0.5px solid var(--border);border-radius:14px;padding:36px;max-width:580px;width:100%}
@@ -26,50 +26,80 @@ label{font-size:12px;color:var(--muted);display:block;margin-bottom:6px}
 input[type=text]{width:100%;background:var(--bg3);border:0.5px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--text);font-size:13px;outline:none}
 input[type=text]:focus{border-color:rgba(55,138,221,.5)}
 .hint{font-size:11px;color:var(--muted);margin:5px 0 14px}
+.err-msg{color:var(--coral);font-size:13px;margin-top:10px;line-height:1.5}
+/* BUTTONS */
 .btn{display:inline-flex;align-items:center;background:var(--blue);color:#fff;border:none;border-radius:8px;padding:11px 22px;font-size:14px;font-weight:500;cursor:pointer;transition:opacity .15s}
 .btn:hover{opacity:.85}
 .btn-sm{background:var(--bg3);color:var(--muted);border:0.5px solid var(--border);border-radius:7px;padding:6px 14px;font-size:12px;cursor:pointer}
 .btn-sm:hover{color:var(--text)}
-.err-msg{color:var(--coral);font-size:13px;margin-top:10px;line-height:1.5}
-#s-dash{display:none;flex-direction:column;padding:20px 22px;min-height:100vh}
+/* DASHBOARD */
+#s-dash{display:none;flex-direction:column;padding:18px 20px;min-height:100vh}
 #s-dash.show{display:flex}
-.topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:10px}
+.topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:10px}
 .tl h1{font-size:20px;font-weight:500}
 .tl .tag{font-size:11px;color:var(--muted);margin-top:2px}
 .tr{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .win-wrap{display:flex;gap:2px;background:var(--bg2);padding:3px;border-radius:8px}
 .win-btn{background:none;border:none;padding:5px 14px;font-size:12px;font-weight:500;border-radius:6px;cursor:pointer;color:var(--muted);transition:all .15s}
 .win-btn.active{background:var(--bg3);color:var(--text);border:0.5px solid var(--border)}
-.pill{font-size:11px;color:var(--muted);max-width:300px}
+.pill{font-size:11px;color:var(--muted);max-width:280px}
 .spin{width:13px;height:13px;border:2px solid var(--border);border-top-color:var(--blue);border-radius:50%;animation:spin .7s linear infinite;display:none}
 .spin.on{display:inline-block}
 @keyframes spin{to{transform:rotate(360deg)}}
-.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px}
-.kpi{background:var(--bg2);border-radius:10px;padding:13px 15px}
-.kpi-l{font-size:10px;color:var(--muted);margin-bottom:5px}
-.kpi-v{font-size:22px;font-weight:500;font-family:var(--mono)}
+/* BEST OF */
+.best-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:12px}
+.best-card{background:var(--bg2);border-radius:10px;padding:12px 14px;border-left:3px solid var(--blue)}
+.best-label{font-size:10px;color:var(--muted);letter-spacing:.04em;margin-bottom:4px}
+.best-val{font-size:17px;font-weight:500;font-family:var(--mono);margin-bottom:3px}
+.best-title{font-size:10px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* KPIS */
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}
+.kpi{background:var(--bg2);border-radius:10px;padding:12px 14px}
+.kpi-l{font-size:10px;color:var(--muted);margin-bottom:4px}
+.kpi-v{font-size:21px;font-weight:500;font-family:var(--mono)}
 .kpi-d{font-size:11px;margin-left:5px}
-.row{display:grid;gap:13px;margin-bottom:13px}
+.kpi-trend{font-size:10px;margin-top:3px}
+/* GRID ROWS */
+.row{display:grid;gap:12px;margin-bottom:12px}
 .r21{grid-template-columns:3fr 2fr}
+.r12{grid-template-columns:2fr 3fr}
+.r3{grid-template-columns:1fr 1fr 1fr}
 .req{grid-template-columns:1fr 1fr;align-items:start}
+.rfull{grid-template-columns:1fr}
+/* CHART BLOCKS */
 .cb{background:var(--bg2);border-radius:10px;padding:14px}
 .ct{font-size:10px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin-bottom:9px}
 .cw{position:relative}
 .leg{display:flex;flex-wrap:wrap;gap:5px 12px;margin-top:7px}
 .li{display:flex;align-items:center;gap:4px;font-size:10px;color:var(--muted)}
 .ld{width:7px;height:7px;border-radius:50%}
+/* TREND STRIP */
+.trend-strip{display:flex;gap:20px;padding:10px 14px;background:var(--bg2);border-radius:10px;margin-bottom:12px;flex-wrap:wrap;align-items:center}
+.trend-label{font-size:10px;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;margin-right:4px}
+.trend-item{display:flex;align-items:center;gap:6px;font-size:12px}
+.trend-name{color:var(--muted)}
+.up{color:var(--teal)}.dn{color:var(--coral)}.flat{color:var(--muted)}
+/* FILTERS */
+.filter-row{display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;align-items:center}
+.filter-row input[type=text]{width:200px;padding:7px 12px;font-size:12px}
+.filter-row select{background:var(--bg3);border:0.5px solid var(--border);border-radius:7px;padding:7px 12px;color:var(--text);font-size:12px;outline:none;cursor:pointer}
+.filter-label{font-size:11px;color:var(--muted)}
+/* TABLE */
 .tw{background:var(--bg2);border-radius:10px;padding:14px;overflow-x:auto;margin-bottom:10px}
 table{width:100%;border-collapse:collapse}
-thead th{font-size:10px;font-weight:400;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;padding:0 8px 8px;text-align:left;border-bottom:0.5px solid var(--border)}
+thead th{font-size:10px;font-weight:400;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;padding:0 8px 8px;text-align:left;border-bottom:0.5px solid var(--border);cursor:pointer;white-space:nowrap;user-select:none}
+thead th:hover{color:var(--text)}
+thead th.sorted{color:var(--blue)}
 tbody tr{border-bottom:0.5px solid var(--border)}
 tbody tr:hover{background:rgba(255,255,255,.025)}
 tbody td{padding:7px 8px;font-size:12px}
 .above{color:var(--teal)}.below{color:var(--coral)}.neu{color:var(--muted)}.mono{font-family:var(--mono)}
 .tbadge{font-size:10px;padding:2px 6px;border-radius:4px;white-space:nowrap}
+.score-badge{font-size:10px;padding:2px 8px;border-radius:10px;font-family:var(--mono);font-weight:500}
 .footer{font-size:11px;color:var(--muted);text-align:right;padding-bottom:20px}
 .lnk{background:none;border:none;color:var(--muted);font-size:11px;cursor:pointer;text-decoration:underline}
 .lnk:hover{color:var(--text)}
-@media(max-width:680px){.kpis{grid-template-columns:1fr 1fr}.r21,.req{grid-template-columns:1fr}}
+@media(max-width:700px){.best-row,.kpis{grid-template-columns:1fr 1fr}.r21,.r12,.r3,.req{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -79,27 +109,9 @@ tbody td{padding:7px 8px;font-size:12px}
     <h2>Connect your Google Sheet</h2>
     <p class="sub">No accounts or logins needed here — just publish your sheet and paste the link. One-time setup, takes 2 minutes.</p>
     <div class="steps">
-      <div class="step">
-        <div class="sn">1</div>
-        <div class="sb">
-          <strong>Open your sheet in Google Sheets</strong>
-          <p>Go to <a href="https://sheets.google.com" target="_blank">sheets.google.com</a>. If your data is still in Excel, go to <strong>File &rarr; Import</strong> to bring it in.</p>
-        </div>
-      </div>
-      <div class="step">
-        <div class="sn">2</div>
-        <div class="sb">
-          <strong>Publish the "DATA GEOFF" sheet</strong>
-          <p>Click <strong>File &rarr; Share &rarr; Publish to web</strong> &rarr; change the first dropdown to <strong>"DATA GEOFF"</strong> &rarr; second dropdown to <strong>CSV</strong> &rarr; click <strong>Publish</strong> &rarr; copy the link.</p>
-        </div>
-      </div>
-      <div class="step">
-        <div class="sn">3</div>
-        <div class="sb">
-          <strong>Paste the link below</strong>
-          <p>It looks like <code>https://docs.google.com/spreadsheets/d/...</code></p>
-        </div>
-      </div>
+      <div class="step"><div class="sn">1</div><div class="sb"><strong>Open your sheet in Google Sheets</strong><p>Go to <a href="https://sheets.google.com" target="_blank">sheets.google.com</a>. Import your Excel file via <strong>File &rarr; Import</strong> if needed.</p></div></div>
+      <div class="step"><div class="sn">2</div><div class="sb"><strong>Publish the "DATA GEOFF" sheet</strong><p>Click <strong>File &rarr; Share &rarr; Publish to web</strong> &rarr; select <strong>"DATA GEOFF"</strong> &rarr; <strong>CSV</strong> &rarr; <strong>Publish</strong> &rarr; copy the link.</p></div></div>
+      <div class="step"><div class="sn">3</div><div class="sb"><strong>Paste the link below</strong><p>It looks like <code>https://docs.google.com/spreadsheets/d/...</code></p></div></div>
     </div>
     <label for="surl">Google Sheets publish link</label>
     <input type="text" id="surl" placeholder="https://docs.google.com/spreadsheets/d/...">
@@ -111,10 +123,7 @@ tbody td{padding:7px 8px;font-size:12px}
 
 <div id="s-dash">
   <div class="topbar">
-    <div class="tl">
-      <h1>Geoff &mdash; Channel Dashboard</h1>
-      <div class="tag" id="file-tag">Connecting...</div>
-    </div>
+    <div class="tl"><h1>Geoff &mdash; Channel Dashboard</h1><div class="tag" id="file-tag">Connecting...</div></div>
     <div class="tr">
       <span class="spin" id="spin"></span>
       <span class="pill" id="last-refresh"></span>
@@ -126,41 +135,55 @@ tbody td{padding:7px 8px;font-size:12px}
       <button class="btn-sm" onclick="loadData()">&#8635; Refresh</button>
     </div>
   </div>
+
+  <div class="best-row" id="best-row"></div>
+  <div class="trend-strip" id="trend-strip"></div>
   <div class="kpis" id="kpis"></div>
+
   <div class="row r21">
-    <div class="cb">
-      <div class="ct">Impressions by publish date &nbsp;<span style="color:var(--amber)">&#8212; avg</span> &nbsp;<span style="color:var(--blue)">&#9632; above</span> &nbsp;<span style="color:#555">&#9632; below</span></div>
-      <div class="cw" style="height:210px"><canvas id="c-time" role="img" aria-label="Impressions by date">Impressions</canvas></div>
-    </div>
-    <div class="cb">
-      <div class="ct">CTR vs Retention</div>
-      <div class="cw" style="height:210px"><canvas id="c-scat" role="img" aria-label="CTR vs Retention">Scatter</canvas></div>
-      <div class="leg" id="scat-leg"></div>
-    </div>
+    <div class="cb"><div class="ct">Impressions by publish date &nbsp;<span style="color:var(--amber)">&#8212; avg</span> &nbsp;<span style="color:var(--blue)">&#9632; above</span> &nbsp;<span style="color:#555">&#9632; below</span></div><div class="cw" style="height:200px"><canvas id="c-time" role="img" aria-label="Impressions by date">Impressions</canvas></div></div>
+    <div class="cb"><div class="ct">Audience split (NV / Channel / Returning)</div><div class="cw" style="height:200px"><canvas id="c-aud" role="img" aria-label="Audience split">Audience</canvas></div><div class="leg" id="aud-leg"></div></div>
   </div>
+
+  <div class="row r3">
+    <div class="cb"><div class="ct">Avg CTR by hook type</div><div class="cw" style="height:220px"><canvas id="c-hook" role="img" aria-label="CTR by hook">Hook CTR</canvas></div></div>
+    <div class="cb"><div class="ct">CTR vs Retention</div><div class="cw" style="height:220px"><canvas id="c-scat" role="img" aria-label="CTR vs Retention">Scatter</canvas></div><div class="leg" id="scat-leg"></div></div>
+    <div class="cb"><div class="ct">Avg CTR by title format</div><div class="cw" style="height:220px"><canvas id="c-fmt" role="img" aria-label="CTR by format">Format CTR</canvas></div></div>
+  </div>
+
   <div class="row req">
-    <div class="cb">
-      <div class="ct">Avg CTR by title format &nbsp;<span style="color:var(--teal)">&#9632; above avg</span> &nbsp;<span style="color:var(--coral)">&#9632; below</span></div>
-      <div class="cw" style="height:240px"><canvas id="c-fmt" role="img" aria-label="CTR by format">Format CTR</canvas></div>
-    </div>
-    <div class="cb">
-      <div class="ct">Avg impressions by topic</div>
-      <div class="cw" style="height:350px"><canvas id="c-top" role="img" aria-label="Impressions by topic">Topic</canvas></div>
-    </div>
+    <div class="cb"><div class="ct">Avg impressions by topic</div><div class="cw" style="height:300px"><canvas id="c-top" role="img" aria-label="Impressions by topic">Topic</canvas></div></div>
+    <div class="cb"><div class="ct">Video duration vs Retention %</div><div class="cw" style="height:300px"><canvas id="c-dur" role="img" aria-label="Duration vs Retention">Duration</canvas></div></div>
   </div>
+
+  <div class="row rfull">
+    <div class="cb"><div class="ct">Publishing cadence &mdash; days between uploads</div><div class="cw" style="height:120px"><canvas id="c-cad" role="img" aria-label="Publishing cadence">Cadence</canvas></div></div>
+  </div>
+
+  <div class="filter-row">
+    <span class="filter-label">Filter:</span>
+    <input type="text" id="f-text" placeholder="Search titles..." oninput="setFilter('text',this.value)">
+    <select id="f-topic" onchange="setFilter('topic',this.value)"><option value="">All topics</option></select>
+    <select id="f-format" onchange="setFilter('format',this.value)"><option value="">All formats</option></select>
+    <select id="f-hook" onchange="setFilter('hook',this.value)"><option value="">All hooks</option></select>
+    <span id="filter-count" style="font-size:11px;color:var(--muted);margin-left:4px"></span>
+  </div>
+
   <div class="tw">
-    <div class="ct" style="margin-bottom:10px">All videos &mdash; sorted by impressions &nbsp;<span style="color:var(--teal)">&#9632; above avg</span> &nbsp;<span style="color:var(--coral)">&#9632; below avg</span></div>
+    <div class="ct" style="margin-bottom:10px">All videos &nbsp;<span style="color:var(--teal)">&#9632; above avg</span> &nbsp;<span style="color:var(--coral)">&#9632; below avg</span></div>
     <div id="vtbl"></div>
   </div>
-  <div class="footer">Checks for new data every 30 seconds &nbsp;&middot;&nbsp; <button class="lnk" onclick="resetLink()">Change sheet link</button></div>
+  <div class="footer">Auto-checks every 30s &nbsp;&middot;&nbsp; <button class="lnk" onclick="resetLink()">Change sheet link</button></div>
 </div>
 
 <script>
-const STORE='geoff_gs_v2';
-let cfg={};
-try{cfg=JSON.parse(localStorage.getItem(STORE)||'{}');}catch(e){}
+const STORE='geoff_gs_v3';
+let cfg={};try{cfg=JSON.parse(localStorage.getItem(STORE)||'{}');}catch(e){}
 const TC={'Getting Ex Back':'#378ADD','Marriage & Divorce':'#EF9F27','Affair & Infidelity':'#D85A30','Breakup Psychology':'#7F77DD','Avoidant & No Contact':'#1D9E75','General Relationship':'#888780','Relationship Advice & Mindset':'#D4537E','Rebuilding Relationship':'#5DCAA5'};
+const HC={'Urgency':'#D85A30','Pain Point':'#7F77DD','Direct Value':'#1D9E75','Curiosity/Reframe':'#EF9F27','Social Proof/Story':'#378ADD'};
 let W='24h',charts={},timer=null,parsedData=null;
+let filterState={text:'',topic:'',format:'',hook:''};
+let sortState={col:'imp',dir:'desc'};
 
 window.addEventListener('load',function(){if(cfg.csvUrl){showDash();loadData();}});
 function showDash(){document.getElementById('s-setup').classList.add('gone');document.getElementById('s-dash').classList.add('show');}
@@ -172,21 +195,15 @@ function saveLink(){
   document.getElementById('serr').style.display='none';
   if(!url){showErr('Please paste your Google Sheets publish link.');return;}
   if(!url.includes('docs.google.com/spreadsheets')){showErr('That doesn\'t look like a Google Sheets link.');return;}
-  cfg.csvUrl=toCsvUrl(url);
-  localStorage.setItem(STORE,JSON.stringify(cfg));
-  showDash();loadData();
+  cfg.csvUrl=toCsvUrl(url);localStorage.setItem(STORE,JSON.stringify(cfg));showDash();loadData();
 }
 function toCsvUrl(url){
   if(url.includes('output=csv')||url.includes('tqx=out:csv'))return url;
-  var match=url.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/);
-  if(!match)return url;
-  return 'https://docs.google.com/spreadsheets/d/'+match[1]+'/gviz/tq?tqx=out:csv&sheet=DATA%20GEOFF';
+  var m=url.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/);
+  if(!m)return url;
+  return 'https://docs.google.com/spreadsheets/d/'+m[1]+'/gviz/tq?tqx=out:csv&sheet=DATA%20GEOFF';
 }
-function resetLink(){
-  if(!confirm('Remove this sheet link and start over?'))return;
-  clearTimeout(timer);localStorage.removeItem(STORE);cfg={};parsedData=null;
-  document.getElementById('surl').value='';showSetup();
-}
+function resetLink(){if(!confirm('Remove this sheet link?'))return;clearTimeout(timer);localStorage.removeItem(STORE);cfg={};parsedData=null;document.getElementById('surl').value='';showSetup();}
 function setSpin(on){document.getElementById('spin').classList.toggle('on',on);}
 function setStatus(msg){document.getElementById('last-refresh').textContent=msg;}
 function setTag(msg){document.getElementById('file-tag').textContent=msg;}
@@ -195,21 +212,17 @@ async function loadData(){
   setSpin(true);setStatus('Loading...');clearTimeout(timer);
   try{
     var res=await fetch(cfg.csvUrl);
-    if(!res.ok)throw new Error('Could not load sheet (error '+res.status+'). Make sure it is published as CSV.');
+    if(!res.ok)throw new Error('Could not load sheet ('+res.status+'). Make sure it is published as CSV.');
     var text=await res.text();
-    if(text.trim().startsWith('<'))throw new Error('Got an HTML page instead of data. Re-publish the sheet using File \u2192 Share \u2192 Publish to web \u2192 CSV.');
+    if(text.trim().startsWith('<'))throw new Error('Got HTML instead of data. Re-publish via File \u2192 Share \u2192 Publish to web \u2192 CSV.');
     parsedData=parseCsv(text);
+    populateFilters(parsedData.videos);
     renderAll(parsedData);
     var t=new Date();
     setStatus('Updated '+t.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}));
     setTag('Live from Google Sheets \u00b7 auto-checks every 30s');
-  }catch(e){
-    setStatus('\u26a0 '+e.message);
-    setTag('Error \u2014 check your sheet link');
-    console.error(e);
-  }finally{
-    setSpin(false);timer=setTimeout(loadData,30000);
-  }
+  }catch(e){setStatus('\u26a0 '+e.message);setTag('Error');console.error(e);}
+  finally{setSpin(false);timer=setTimeout(loadData,30000);}
 }
 
 function parseCsv(text){
@@ -217,42 +230,25 @@ function parseCsv(text){
   for(var i=0;i<text.length;i++){
     var c=text[i];
     if(inQ){if(c==='"'&&text[i+1]==='"'){field+='"';i++;}else if(c==='"'){inQ=false;}else{field+=c;}}
-    else{if(c==='"'){inQ=true;}else if(c===','){cur.push(field);field='';}else if(c==='\n'){cur.push(field);rows.push(cur);cur=[];field='';}else if(c==='\r'){}else{field+=c;}}
+    else{if(c==='"'){inQ=true;}else if(c===','){cur.push(field);field='';}else if(c==='\n'){cur.push(field);rows.push(cur);cur=[];field='';}else if(c!=='\r'){field+=c;}}
   }
   if(field||cur.length){cur.push(field);rows.push(cur);}
   return buildData(rows);
 }
 
 function buildData(rows){
-  if(rows.length<2)throw new Error('No data found in the sheet.');
+  if(rows.length<2)throw new Error('No data found.');
   var rawH=rows[0].map(function(h){return String(h||'');});
   var hMap={};
   rawH.forEach(function(h,i){hMap[h]=i;hMap[h.trim()]=i;hMap[h.trim().toLowerCase()]=i;});
   function ci(n){return hMap[n]!==undefined?hMap[n]:hMap[n.trim()]!==undefined?hMap[n.trim()]:hMap[n.trim().toLowerCase()]!==undefined?hMap[n.trim().toLowerCase()]:-1;}
   function cell(row,n){var i=ci(n);return i>=0?row[i]:null;}
-  function num(v){
-    if(v===null||v===undefined||v===''||v==='#N/A'||v==='#VALUE!'||v==='#REF!')return null;
-    var n=parseFloat(String(v).replace(/[,%]/g,''));
-    return isNaN(n)?null:n;
-  }
-  // pct: handles both "6.70%" string and 0.067 decimal and 6.70 plain number
-  function pct(v){
-    if(v===null||v===undefined||v==='')return null;
-    var s=String(v).trim();
-    if(s.endsWith('%'))return parseFloat(s)/100;
-    var n=parseFloat(s);
-    if(isNaN(n))return null;
-    // if value is greater than 1, it's already in percentage form (e.g. 6.70 means 6.70%)
-    return n>1?n/100:n;
-  }
+  function num(v){if(v===null||v===undefined||v===''||String(v).startsWith('#'))return null;var n=parseFloat(String(v).replace(/[,%]/g,''));return isNaN(n)?null:n;}
+  function pct(v){if(v===null||v===undefined||v==='')return null;var s=String(v).trim();if(s.endsWith('%'))return parseFloat(s)/100;var n=parseFloat(s);if(isNaN(n))return null;return n>1?n/100:n;}
   function nc(row,a,b){var v=cell(row,a);return(v!==null&&v!==undefined&&v!=='')?v:cell(row,b);}
-  function toDate(v){
-    if(!v)return null;
-    var s=String(v).trim();
-    if(s.match(/^\d{4}-\d{2}-\d{2}/))return s.slice(0,10);
-    if(s.match(/^\d{1,2}\/\d{1,2}\/\d{4}/)){var p=s.split('/');return p[2].slice(0,4)+'-'+p[0].padStart(2,'0')+'-'+p[1].padStart(2,'0');}
-    return s.slice(0,10)||null;
-  }
+  function toDate(v){if(!v)return null;var s=String(v).trim();if(s.match(/^\d{4}-\d{2}-\d{2}/))return s.slice(0,10);if(s.match(/^\d{1,2}\/\d{1,2}\/\d{4}/)){var p=s.split('/');return p[2].slice(0,4)+'-'+p[0].padStart(2,'0')+'-'+p[1].padStart(2,'0');}return s.slice(0,10)||null;}
+  function parseDur(v){if(!v)return null;var s=String(v).trim();var m=s.match(/(\d+):(\d+):(\d+)/);if(m)return +m[1]*3600+ +m[2]*60+ +m[3];var n=parseFloat(s);if(!isNaN(n)&&n>0&&n<2)return Math.round(n*86400);return null;}
+
   var videos=[];
   for(var i=1;i<rows.length;i++){
     var r=rows[i],name=cell(r,'NAME');
@@ -265,30 +261,25 @@ function buildData(rows){
       hook:String(cell(r,'Emotional Hook')||'').trim()||null,
       topic:String(cell(r,'TOPIC')||'').trim()||null,
       pub_date:toDate(cell(r,'PUB_DATE')),
-      imp_24h:num(cell(r,'24h (IMP)')),
-      views_24h:num(cell(r,'24h (View)')),
-      ctr_24h:pct(nc(r,' 24hr CTR','24hr CTR')),
-      ret_24h:pct(cell(r,'Retention %')),
-      likes_24h:num(cell(r,'LIKES_24H')),
-      comments_24h:num(cell(r,'COMMENTS_24H')),
-      sub_gain_24h:num(cell(r,'SUB_GAIN_24H')),
-      imp_7d:num(nc(r,' 7D (IMP)','7D (IMP)')),
-      views_7d:num(cell(r,'NEW (View)')),
-      ctr_7d:pct(cell(r,'Total 7D CTR')),
-      ret_7d:pct(cell(r,'Retention % 7D')),
-      likes_7d:num(cell(r,'LIKES_7D')),
-      comments_7d:num(cell(r,'COMMENTS_7D')),
-      sub_gain_7d:num(cell(r,'SUB_GAIN_7D')),
-      imp_28d:num(cell(r,'28D (IMP)')),
-      views_28d:num(cell(r,'28D (VIEW)')),
-      ctr_28d:pct(cell(r,'CTR_ 28D')),
-      ret_28d:pct(cell(r,'Retention % 28D')),
-      likes_28d:num(cell(r,'LIKES_28D')),
-      comments_28d:num(cell(r,'COMMENTS_28D')),
-      sub_gain_28d:num(cell(r,'SUB_GAIN_28D'))
+      vid_dur_s:parseDur(cell(r,'VID_DUR')),
+      // 24h
+      imp_24h:num(cell(r,'24h (IMP)')),views_24h:num(cell(r,'24h (View)')),
+      ctr_24h:pct(nc(r,' 24hr CTR','24hr CTR')),ret_24h:pct(cell(r,'Retention %')),
+      likes_24h:num(cell(r,'LIKES_24H')),comments_24h:num(cell(r,'COMMENTS_24H')),sub_gain_24h:num(cell(r,'SUB_GAIN_24H')),
+      nv_imp_24h:num(cell(r,'NV_IMP_24H')),cv_imp_24h:num(cell(r,'CV_IMP_24H')),rv_imp_24h:num(cell(r,'RV_IMP_24H')),
+      // 7d
+      imp_7d:num(nc(r,' 7D (IMP)','7D (IMP)')),views_7d:num(cell(r,'NEW (View)')),
+      ctr_7d:pct(cell(r,'Total 7D CTR')),ret_7d:pct(cell(r,'Retention % 7D')),
+      likes_7d:num(cell(r,'LIKES_7D')),comments_7d:num(cell(r,'COMMENTS_7D')),sub_gain_7d:num(cell(r,'SUB_GAIN_7D')),
+      nv_imp_7d:num(cell(r,'NV_IMP_7D')),cv_imp_7d:num(cell(r,'CV_IMP_7D')),rv_imp_7d:num(cell(r,'RV_IMP_7D')),
+      // 28d
+      imp_28d:num(cell(r,'28D (IMP)')),views_28d:num(cell(r,'28D (VIEW)')),
+      ctr_28d:pct(cell(r,'CTR_ 28D')),ret_28d:pct(cell(r,'Retention % 28D')),
+      likes_28d:num(cell(r,'LIKES_28D')),comments_28d:num(cell(r,'COMMENTS_28D')),sub_gain_28d:num(cell(r,'SUB_GAIN_28D')),
+      nv_imp_28d:num(cell(r,'NV_IMP_28D')),cv_imp_28d:num(cell(r,'CV_IMP_28D')),rv_imp_28d:num(cell(r,'RV_IMP_28D'))
     });
   }
-  if(!videos.length)throw new Error('No video rows found. Check the sheet tab is named exactly "DATA GEOFF".');
+  if(!videos.length)throw new Error('No rows found. Check sheet tab is named exactly "DATA GEOFF".');
   function avg(f){var v=videos.map(function(x){return x[f];}).filter(function(x){return x!=null&&!isNaN(x);});return v.length?v.reduce(function(a,b){return a+b;},0)/v.length:0;}
   var bench={
     '24h':{ctr:avg('ctr_24h'),imp:avg('imp_24h'),views:avg('views_24h'),ret:avg('ret_24h')},
@@ -298,11 +289,100 @@ function buildData(rows){
   return{videos:videos,bench:bench};
 }
 
+function populateFilters(videos){
+  function fill(id,vals){var sel=document.getElementById(id);var cur=sel.value;sel.innerHTML='<option value="">'+sel.options[0].text+'</option>';vals.forEach(function(v){var o=document.createElement('option');o.value=v;o.textContent=v;sel.appendChild(o);});sel.value=cur;}
+  fill('f-topic',[...new Set(videos.map(function(v){return v.topic;}).filter(Boolean))].sort());
+  fill('f-format',[...new Set(videos.map(function(v){return v.title_format;}).filter(Boolean))].sort());
+  fill('f-hook',[...new Set(videos.map(function(v){return v.hook;}).filter(Boolean))].sort());
+}
+
+function setFilter(k,v){filterState[k]=v;if(parsedData)renderTable(parsedData.videos,parsedData.bench[W]);}
+function setSort(col){if(sortState.col===col){sortState.dir=sortState.dir==='desc'?'asc':'desc';}else{sortState.col=col;sortState.dir='desc';}if(parsedData)renderTable(parsedData.videos,parsedData.bench[W]);}
+function filterVideos(videos){
+  return videos.filter(function(v){
+    if(filterState.text&&!v.name.toLowerCase().includes(filterState.text.toLowerCase()))return false;
+    if(filterState.topic&&v.topic!==filterState.topic)return false;
+    if(filterState.format&&v.title_format!==filterState.format)return false;
+    if(filterState.hook&&v.hook!==filterState.hook)return false;
+    return true;
+  });
+}
+
+function perfScore(v,s,bench){
+  var b=bench[s];
+  var scores=[];
+  if(b.ctr>0&&v['ctr_'+s]!=null)scores.push(Math.min(v['ctr_'+s]/b.ctr,2)*50);
+  if(b.imp>0&&v['imp_'+s]!=null)scores.push(Math.min(v['imp_'+s]/b.imp,2)*50);
+  if(b.ret>0&&v['ret_'+s]!=null)scores.push(Math.min(v['ret_'+s]/b.ret,2)*50);
+  if(b.views>0&&v['views_'+s]!=null)scores.push(Math.min(v['views_'+s]/b.views,2)*50);
+  return scores.length?Math.round(scores.reduce(function(a,b){return a+b;},0)/scores.length):null;
+}
+
 function setWin(w){W=w;['24h','7d','28d'].forEach(function(x){document.getElementById('btn-'+x).classList.toggle('active',x===w);});if(parsedData)renderAll(parsedData);}
-function sf(){return W==='24h'?'24h':W==='7d'?'7d':'28d';}
+function sf(){return W;}
 var M='rgba(255,255,255,.42)',GR='rgba(255,255,255,.06)';
 function dc(k){if(charts[k]){charts[k].destroy();delete charts[k];}}
-function renderAll(d){var b=d.bench[W];renderKPIs(d.videos,b);renderTime(d.videos,b);renderScat(d.videos);renderFmt(d.videos,b);renderTop(d.videos);renderTable(d.videos,b);}
+function grpAvg(videos,kFn,vFn){var m={};videos.forEach(function(v){var k=kFn(v),val=vFn(v);if(!k||val==null||isNaN(val))return;if(!m[k])m[k]=[];m[k].push(val);});var r={};Object.keys(m).forEach(function(k){r[k]=m[k].reduce(function(a,b){return a+b;},0)/m[k].length;});return r;}
+
+function renderAll(d){
+  var b=d.bench[W],s=sf();
+  renderBestOf(d.videos,d.bench);
+  renderTrend(d.videos);
+  renderKPIs(d.videos,b);
+  renderTime(d.videos,b);
+  renderAudience(d.videos);
+  renderHook(d.videos,b);
+  renderScat(d.videos);
+  renderFmt(d.videos,b);
+  renderTop(d.videos);
+  renderDuration(d.videos);
+  renderCadence(d.videos);
+  renderTable(d.videos,b);
+}
+
+function renderBestOf(videos,bench){
+  var s=sf(),b=bench[s];
+  function best(field,higher){
+    var vs=videos.filter(function(v){return v[field]!=null;});
+    if(!vs.length)return null;
+    return vs.reduce(function(a,v){return higher?(v[field]>a[field]?v:a):(v[field]<a[field]?v:a);});
+  }
+  var bCtr=best('ctr_'+s,true),bImp=best('imp_'+s,true),bRet=best('ret_'+s,true),bSub=best('sub_gain_'+s,true);
+  function card(label,v,valFn,valFmt,color){
+    if(!v)return '<div class="best-card" style="border-left-color:'+color+'"><div class="best-label">'+label+'</div><div class="best-val" style="color:'+color+'">N/A</div></div>';
+    return '<div class="best-card" style="border-left-color:'+color+'"><div class="best-label">'+label+'</div><div class="best-val" style="color:'+color+'">'+valFmt(valFn(v))+'</div><div class="best-title" title="'+v.name+'">'+v.name+'</div></div>';
+  }
+  document.getElementById('best-row').innerHTML=
+    card('Best CTR',bCtr,function(v){return v['ctr_'+s];},function(x){return(x*100).toFixed(1)+'%';},'#378ADD')+
+    card('Most Impressions',bImp,function(v){return v['imp_'+s];},function(x){return(x/1000).toFixed(1)+'K';},'#EF9F27')+
+    card('Best Retention',bRet,function(v){return v['ret_'+s];},function(x){return(x*100).toFixed(0)+'%';},'#1D9E75')+
+    card('Most Subs Gained',bSub,function(v){return v['sub_gain_'+s];},function(x){return'+'+Math.round(x);},'#D4537E');
+}
+
+function renderTrend(videos){
+  var s=sf();
+  var sorted=videos.filter(function(v){return v.pub_date&&v['imp_'+s]!=null;}).sort(function(a,b){return new Date(b.pub_date)-new Date(a.pub_date);});
+  if(sorted.length<6){document.getElementById('trend-strip').innerHTML='<span class="trend-label">Trend</span><span style="font-size:11px;color:var(--muted)">Need 6+ videos to compare trends</span>';return;}
+  var recent=sorted.slice(0,5),prev=sorted.slice(5,10);
+  function trendVal(field){
+    var r=recent.filter(function(v){return v[field]!=null;});
+    var p=prev.filter(function(v){return v[field]!=null;});
+    if(!r.length||!p.length)return null;
+    var ar=r.reduce(function(a,v){return a+v[field];},0)/r.length;
+    var ap=p.reduce(function(a,v){return a+v[field];},0)/p.length;
+    return ap>0?((ar-ap)/ap*100):null;
+  }
+  function ti(label,field,fmt){
+    var p=trendVal(field);
+    if(p===null)return '';
+    var cls=Math.abs(p)<1?'flat':p>0?'up':'dn';
+    var arrow=Math.abs(p)<1?'&#8212;':p>0?'&#8593;':'&#8595;';
+    return '<span class="trend-item"><span class="trend-name">'+label+'</span><span class="'+cls+'">'+arrow+' '+Math.abs(p).toFixed(0)+'%</span></span>';
+  }
+  document.getElementById('trend-strip').innerHTML=
+    '<span class="trend-label">Last 5 vs prev 5</span>'+
+    ti('CTR','ctr_'+s)+ti('Impressions','imp_'+s)+ti('Views','views_'+s)+ti('Retention','ret_'+s)+ti('Subs gained','sub_gain_'+s);
+}
 
 function renderKPIs(videos,b){
   var s=sf();
@@ -327,15 +407,34 @@ function renderTime(videos,b){
   ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:function(c){return c.datasetIndex===0?' '+c.raw.toLocaleString()+' impr.':' '+Math.round(c.raw).toLocaleString()+' (avg)';}}}},scales:{x:{ticks:{color:M,font:{size:9},autoSkip:true,maxRotation:45},grid:{display:false}},y:{ticks:{color:M,font:{size:9},callback:function(v){return(v/1000).toFixed(0)+'K';}},grid:{color:GR},border:{display:false}}}}});
 }
 
+function renderAudience(videos){
+  dc('aud');var s=sf();
+  var nv=0,cv=0,rv=0,n=0;
+  videos.forEach(function(v){var a=v['nv_imp_'+s],b=v['cv_imp_'+s],c=v['rv_imp_'+s];if(a!=null&&b!=null&&c!=null){nv+=a;cv+=b;rv+=c;n++;}});
+  if(!n){document.getElementById('c-aud').parentElement.innerHTML='<p style="color:var(--muted);font-size:12px;padding:20px 0">NV/CV/RV data not found in sheet</p>';return;}
+  var total=nv+cv+rv;
+  charts.aud=new Chart(document.getElementById('c-aud').getContext('2d'),{type:'doughnut',data:{labels:['New viewers','Channel viewers','Returning viewers'],datasets:[{data:[Math.round(nv/total*100),Math.round(cv/total*100),Math.round(rv/total*100)],backgroundColor:['#378ADD','#1D9E75','#EF9F27'],borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,cutout:'65%',plugins:{legend:{display:false},tooltip:{callbacks:{label:function(c){return' '+c.label+': '+c.raw+'%';}}}}}});
+  document.getElementById('aud-leg').innerHTML=[['#378ADD','New '+(nv/total*100).toFixed(0)+'%'],['#1D9E75','Channel '+(cv/total*100).toFixed(0)+'%'],['#EF9F27','Returning '+(rv/total*100).toFixed(0)+'%']].map(function(x){return '<span class="li"><span class="ld" style="background:'+x[0]+'"></span>'+x[1]+'</span>';}).join('');
+}
+
+function renderHook(videos,b){
+  dc('hook');var s=sf();
+  var ctrByHook=grpAvg(videos,function(v){return v.hook;},function(v){return v['ctr_'+s];});
+  var retByHook=grpAvg(videos,function(v){return v.hook;},function(v){return v['ret_'+s];});
+  var hooks=Object.keys(ctrByHook).sort(function(a,c){return ctrByHook[c]-ctrByHook[a];});
+  charts.hook=new Chart(document.getElementById('c-hook').getContext('2d'),{type:'bar',data:{labels:hooks,datasets:[
+    {label:'CTR %',data:hooks.map(function(h){return+(ctrByHook[h]*100).toFixed(2);}),backgroundColor:hooks.map(function(h){return(HC[h]||'#888')+'BB';}),borderWidth:0},
+    {label:'Retention %',data:hooks.map(function(h){return retByHook[h]!=null?+(retByHook[h]*100).toFixed(1):null;}),backgroundColor:hooks.map(function(h){return(HC[h]||'#888')+'44';}),borderWidth:0,borderColor:hooks.map(function(h){return HC[h]||'#888';}),borderWidth:1}
+  ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:function(c){return' '+c.dataset.label+': '+c.raw.toFixed(1)+'%';}}}},scales:{x:{ticks:{color:M,font:{size:9},maxRotation:30},grid:{display:false}},y:{ticks:{color:M,font:{size:9},callback:function(v){return v+'%';}},grid:{color:GR},border:{display:false}}}}});
+}
+
 function renderScat(videos){
   dc('sc');var s=sf(),topics=[];
   videos.forEach(function(v){if(v.topic&&topics.indexOf(v.topic)<0)topics.push(v.topic);});
-  var ds=topics.map(function(t){return{label:t,data:videos.filter(function(v){return v.topic===t&&v['ctr_'+s]!=null&&v['ret_'+s]!=null;}).map(function(v){return{x:+(v['ctr_'+s]*100).toFixed(2),y:+(v['ret_'+s]*100).toFixed(1),n:v.name};}),backgroundColor:(TC[t]||'#888')+'BB',pointRadius:6,pointHoverRadius:9};}).filter(function(d){return d.data.length>0;});
-  charts.sc=new Chart(document.getElementById('c-scat').getContext('2d'),{type:'scatter',data:{datasets:ds},options:{responsive:true,maintainAspectRatio:false,layout:{padding:10},plugins:{legend:{display:false},tooltip:{callbacks:{title:function(c){var n=c[0].raw.n;return n.slice(0,38)+(n.length>38?'...':'');},label:function(c){return 'CTR: '+c.raw.x.toFixed(1)+'%  Ret: '+c.raw.y.toFixed(0)+'%';}}}},scales:{x:{title:{display:true,text:'CTR %',color:M,font:{size:9}},ticks:{color:M,font:{size:9},callback:function(v){return v+'%';}},grid:{color:GR}},y:{title:{display:true,text:'Retention %',color:M,font:{size:9}},ticks:{color:M,font:{size:9},callback:function(v){return v+'%';}},grid:{color:GR}}}}});
-  document.getElementById('scat-leg').innerHTML=ds.map(function(d){return '<span class="li"><span class="ld" style="background:'+(TC[d.label]||'#888')+'"></span>'+d.label+'</span>';}).join('');
+  var ds=topics.map(function(t){return{label:t,data:videos.filter(function(v){return v.topic===t&&v['ctr_'+s]!=null&&v['ret_'+s]!=null;}).map(function(v){return{x:+(v['ctr_'+s]*100).toFixed(2),y:+(v['ret_'+s]*100).toFixed(1),n:v.name};}),backgroundColor:(TC[t]||'#888')+'BB',pointRadius:5,pointHoverRadius:8};}).filter(function(d){return d.data.length>0;});
+  charts.sc=new Chart(document.getElementById('c-scat').getContext('2d'),{type:'scatter',data:{datasets:ds},options:{responsive:true,maintainAspectRatio:false,layout:{padding:8},plugins:{legend:{display:false},tooltip:{callbacks:{title:function(c){var n=c[0].raw.n;return n.slice(0,36)+(n.length>36?'...':'');},label:function(c){return'CTR: '+c.raw.x.toFixed(1)+'%  Ret: '+c.raw.y.toFixed(0)+'%';}}}},scales:{x:{title:{display:true,text:'CTR %',color:M,font:{size:9}},ticks:{color:M,font:{size:9},callback:function(v){return v+'%';}},grid:{color:GR}},y:{title:{display:true,text:'Retention %',color:M,font:{size:9}},ticks:{color:M,font:{size:9},callback:function(v){return v+'%';}},grid:{color:GR}}}}});
+  document.getElementById('scat-leg').innerHTML=ds.map(function(d){return'<span class="li"><span class="ld" style="background:'+(TC[d.label]||'#888')+'"></span>'+d.label+'</span>';}).join('');
 }
-
-function grpAvg(videos,kFn,vFn){var m={};videos.forEach(function(v){var k=kFn(v),val=vFn(v);if(!k||val==null||isNaN(val))return;if(!m[k])m[k]=[];m[k].push(val);});var r={};Object.keys(m).forEach(function(k){r[k]=m[k].reduce(function(a,b){return a+b;},0)/m[k].length;});return r;}
 
 function renderFmt(videos,b){
   dc('f');var s=sf();
@@ -348,19 +447,75 @@ function renderTop(videos){
   dc('tp');var s=sf();
   var raw=grpAvg(videos,function(v){return v.topic;},function(v){return v['imp_'+s];});
   var e=Object.keys(raw).map(function(k){return[k,raw[k]];}).sort(function(a,c){return c[1]-a[1];});
-  charts.tp=new Chart(document.getElementById('c-top').getContext('2d'),{type:'bar',data:{labels:e.map(function(x){return x[0];}),datasets:[{data:e.map(function(x){return Math.round(x[1]);}),backgroundColor:e.map(function(x){return(TC[x[0]]||'#888')+'BB';}),borderWidth:0}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:function(c){return' '+c.raw.toLocaleString()+' avg impr.';}}}},scales:{x:{ticks:{color:M,font:{size:9},callback:function(v){return(v/1000).toFixed(0)+'K';}},grid:{color:GR},border:{display:false}},y:{ticks:{color:'#e8e8ec',font:{size:11}},grid:{display:false}}}}});
+  charts.tp=new Chart(document.getElementById('c-top').getContext('2d'),{type:'bar',data:{labels:e.map(function(x){return x[0];}),datasets:[{data:e.map(function(x){return Math.round(x[1]);}),backgroundColor:e.map(function(x){return(TC[x[0]]||'#888')+'BB';}),borderWidth:0}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:function(c){return' '+c.raw.toLocaleString()+' avg impr.';}}}},scales:{x:{ticks:{color:M,font:{size:9},callback:function(v){return(v/1000).toFixed(0)+'K';}},grid:{color:GR},border:{display:false}},y:{ticks:{color:'#e8e8ec',font:{size:10}},grid:{display:false}}}}});
+}
+
+function renderDuration(videos){
+  dc('dur');var s=sf();
+  var pts=videos.filter(function(v){return v.vid_dur_s!=null&&v['ret_'+s]!=null;}).map(function(v){return{x:+(v.vid_dur_s/60).toFixed(1),y:+(v['ret_'+s]*100).toFixed(1),n:v.name,t:v.topic};});
+  if(!pts.length){document.getElementById('c-dur').parentElement.innerHTML='<p style="color:var(--muted);font-size:12px;padding:20px 0">VID_DUR column not found in sheet</p>';return;}
+  charts.dur=new Chart(document.getElementById('c-dur').getContext('2d'),{type:'scatter',data:{datasets:[{data:pts,backgroundColor:pts.map(function(p){return(TC[p.t]||'#888')+'BB';}),pointRadius:6,pointHoverRadius:9}]},options:{responsive:true,maintainAspectRatio:false,layout:{padding:8},plugins:{legend:{display:false},tooltip:{callbacks:{title:function(c){var n=c[0].raw.n;return n.slice(0,36)+(n.length>36?'...':'');},label:function(c){return'Duration: '+c.raw.x.toFixed(0)+'min  Retention: '+c.raw.y.toFixed(0)+'%';}}}},scales:{x:{title:{display:true,text:'Video length (min)',color:M,font:{size:9}},ticks:{color:M,font:{size:9}},grid:{color:GR}},y:{title:{display:true,text:'Retention %',color:M,font:{size:9}},ticks:{color:M,font:{size:9},callback:function(v){return v+'%';}},grid:{color:GR}}}}});
+}
+
+function renderCadence(videos){
+  dc('cad');
+  var sorted=videos.filter(function(v){return v.pub_date;}).sort(function(a,b){return new Date(a.pub_date)-new Date(b.pub_date);});
+  if(sorted.length<2){return;}
+  var gaps=[],labels=[];
+  for(var i=1;i<sorted.length;i++){
+    var d=(new Date(sorted[i].pub_date)-new Date(sorted[i-1].pub_date))/(1000*60*60*24);
+    gaps.push(Math.round(d));
+    labels.push(sorted[i].pub_date.slice(5));
+  }
+  charts.cad=new Chart(document.getElementById('c-cad').getContext('2d'),{type:'bar',data:{labels:labels,datasets:[
+    {data:gaps,backgroundColor:gaps.map(function(g){return g>14?'rgba(216,90,48,.7)':g>7?'rgba(239,159,39,.7)':'rgba(29,158,117,.7)';}),borderWidth:0,barPercentage:.7},
+    {data:Array(gaps.length).fill(7),type:'line',borderColor:'rgba(255,255,255,.25)',borderWidth:1,borderDash:[3,3],pointRadius:0,fill:false}
+  ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:function(c){return c.datasetIndex===0?' '+c.raw+' days since last upload':' 7-day target';}}}},scales:{x:{ticks:{color:M,font:{size:9},autoSkip:true,maxRotation:45},grid:{display:false}},y:{ticks:{color:M,font:{size:9},callback:function(v){return v+'d';}},grid:{color:GR},border:{display:false}}}}});
 }
 
 function renderTable(videos,b){
   var s=sf();
-  var sorted=videos.filter(function(v){return v['imp_'+s]!=null;}).sort(function(a,c){return c['imp_'+s]-a['imp_'+s];});
+  var filtered=filterVideos(videos);
+  document.getElementById('filter-count').textContent=filtered.length+' of '+videos.length+' videos';
+
+  // Sort
+  var col=sortState.col,dir=sortState.dir;
+  var fieldMap={imp:'imp_'+s,views:'views_'+s,ctr:'ctr_'+s,ret:'ret_'+s,subs:'sub_gain_'+s,likes:'likes_'+s,score:null};
+  filtered=filtered.slice().sort(function(a,c){
+    var av,cv;
+    if(col==='score'){av=perfScore(a,s,b);cv=perfScore(c,s,b);}
+    else if(col==='title'){av=a.name;cv=c.name;}
+    else{av=a[fieldMap[col]||'imp_'+s];cv=c[fieldMap[col]||'imp_'+s];}
+    if(av==null)return 1;if(cv==null)return -1;
+    return dir==='desc'?(cv>av?1:cv<av?-1:0):(av>cv?1:av<cv?-1:0);
+  });
+
   function cls(val,bv){return(val!=null&&val>=bv)?'above':'below';}
-  var rows=sorted.map(function(v,i){
-    var imp=v['imp_'+s],views=v['views_'+s],ctr=v['ctr_'+s],ret=v['ret_'+s],likes=v['likes_'+s];
-    var nm=v.name,sh=nm.length>54?nm.slice(0,54)+'...':nm,tc=TC[v.topic]||'#888';
-    return '<tr><td class="neu mono" style="width:26px">'+(i+1)+'</td><td title="'+nm.replace(/"/g,'&quot;')+'" style="max-width:260px">'+sh+'</td><td><span class="tbadge" style="background:'+tc+'22;color:'+tc+'">'+(v.topic||'&mdash;')+'</span></td><td class="mono '+cls(imp,b.imp)+'">'+(imp!=null?(imp/1000).toFixed(1)+'K':'&mdash;')+'</td><td class="mono '+cls(views,b.views)+'">'+(views!=null?Math.round(views).toLocaleString():'&mdash;')+'</td><td class="mono '+cls(ctr,b.ctr)+'" style="font-weight:600">'+(ctr!=null?(ctr*100).toFixed(1)+'%':'&mdash;')+'</td><td class="mono">'+(ret!=null?(ret*100).toFixed(0)+'%':'&mdash;')+'</td><td class="mono neu">'+(likes!=null?Math.round(likes):'&mdash;')+'</td></tr>';
+  function th(label,col2,title){var sorted=sortState.col===col2;var arrow=sorted?(sortState.dir==='desc'?' &#9660;':' &#9650;'):'';return'<th class="'+(sorted?'sorted':'')+'" onclick="setSort(\''+col2+'\')" title="'+(title||'')+'">'+label+arrow+'</th>';}
+
+  var rows=filtered.map(function(v,i){
+    var imp=v['imp_'+s],views=v['views_'+s],ctr=v['ctr_'+s],ret=v['ret_'+s],subs=v['sub_gain_'+s],likes=v['likes_'+s];
+    var sc=perfScore(v,s,b);
+    var scoreHtml='&mdash;';
+    if(sc!=null){var scColor=sc>=75?'rgba(29,158,117,.2)':sc>=50?'rgba(55,138,221,.2)':sc>=25?'rgba(239,159,39,.2)':'rgba(216,90,48,.2)';var scTxt=sc>=75?'var(--teal)':sc>=50?'var(--blue)':sc>=25?'var(--amber)':'var(--coral)';scoreHtml='<span class="score-badge" style="background:'+scColor+';color:'+scTxt+'">'+sc+'</span>';}
+    var nm=v.name,sh=nm.length>48?nm.slice(0,48)+'...':nm,tc=TC[v.topic]||'#888';
+    return'<tr><td class="neu mono" style="width:22px">'+(i+1)+'</td>'+
+      '<td title="'+nm.replace(/"/g,'&quot;')+'" style="max-width:220px">'+sh+'</td>'+
+      '<td><span class="tbadge" style="background:'+tc+'22;color:'+tc+'">'+(v.topic||'&mdash;')+'</span></td>'+
+      '<td style="text-align:center">'+scoreHtml+'</td>'+
+      '<td class="mono '+cls(imp,b.imp)+'">'+(imp!=null?(imp/1000).toFixed(1)+'K':'&mdash;')+'</td>'+
+      '<td class="mono '+cls(views,b.views)+'">'+(views!=null?Math.round(views).toLocaleString():'&mdash;')+'</td>'+
+      '<td class="mono '+cls(ctr,b.ctr)+'" style="font-weight:600">'+(ctr!=null?(ctr*100).toFixed(1)+'%':'&mdash;')+'</td>'+
+      '<td class="mono '+cls(ret,b.ret)+'">'+(ret!=null?(ret*100).toFixed(0)+'%':'&mdash;')+'</td>'+
+      '<td class="mono neu">'+(subs!=null?'+'+Math.round(subs):'&mdash;')+'</td>'+
+      '<td class="mono neu">'+(likes!=null?Math.round(likes):'&mdash;')+'</td>'+
+      '</tr>';
   }).join('');
-  document.getElementById('vtbl').innerHTML='<table><thead><tr>'+['#','Title','Topic','Impressions','Views','CTR','Retention','Likes'].map(function(h){return'<th>'+h+'</th>';}).join('')+'</tr></thead><tbody>'+rows+'</tbody></table>';
+
+  document.getElementById('vtbl').innerHTML='<table><thead><tr>'+
+    '<th>#</th>'+th('Title','title')+th('Topic','topic')+th('Score','score','Composite score: CTR + Impressions + Views + Retention vs your average')+
+    th('Impressions','imp')+th('Views','views')+th('CTR','ctr')+th('Retention','ret')+th('Subs','subs')+th('Likes','likes')+
+    '</tr></thead><tbody>'+rows+'</tbody></table>';
 }
 </script>
 </body>
