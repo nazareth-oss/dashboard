@@ -649,3 +649,787 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
     </div>
   </div>
 </div>
+
+<script>
+const STORE='geoff_v8';
+let cfg={};try{cfg=JSON.parse(localStorage.getItem(STORE)||'{}');}catch(e){}
+
+const TC={'Getting Ex Back':'#4A9EE8','Marriage & Divorce':'#F0A030','Affair & Infidelity':'#E8542A','Breakup Psychology':'#8B80E8','Avoidant & No Contact':'#1DB87A','General Relationship':'#7a7a8c','Relationship Advice & Mindset':'#E060A0','Rebuilding Relationship':'#5DCAA5'};
+
+// Channel averages from THRESHOLDS sheet (fallback defaults)
+const CHAN_AVG={
+  ctr_24h:0.0797,ctr_nv_24h:0.041,ctr_7d:0.0762,ctr_nv_7d:0.0421,ctr_28d:0.0711,ctr_nv_28d:0.0448,
+  imp_24h:10477,imp_nv_24h:3891,imp_7d:18029,imp_nv_7d:6650,imp_28d:25861,imp_nv_28d:9218,
+  views_24h:1319,views_7d:2178,views_28d:2914,
+  ret_24h:0.354,ret_7d:0.346,ret_28d:0.348
+};
+
+// Personal thresholds (loaded from localStorage or default to channel avg)
+let THRESH={};
+function loadThresh(){
+  try{var t=JSON.parse(localStorage.getItem('geoff_thresh')||'null');if(t)THRESH=t;else resetThreshToAvg();}catch(e){resetThreshToAvg();}
+}
+function resetThreshToAvg(){THRESH={ctr_24h:CHAN_AVG.ctr_24h,ctr_7d:CHAN_AVG.ctr_7d,ctr_28d:CHAN_AVG.ctr_28d,imp_24h:CHAN_AVG.imp_24h,imp_7d:CHAN_AVG.imp_7d,imp_28d:CHAN_AVG.imp_28d,views_24h:CHAN_AVG.views_24h,views_7d:CHAN_AVG.views_7d,views_28d:CHAN_AVG.views_28d,ret_24h:CHAN_AVG.ret_24h,ret_7d:CHAN_AVG.ret_7d,ret_28d:CHAN_AVG.ret_28d,nv_ctr_24h:CHAN_AVG.ctr_nv_24h,nv_ctr_7d:CHAN_AVG.ctr_nv_7d,nv_ctr_28d:CHAN_AVG.ctr_nv_28d};}
+loadThresh();
+
+const THRESH_DEFS=[
+  {key:'ctr_24h',lbl:'CTR (Total) 24H',unit:'%',scale:100,tip:'Overall CTR for 24H window'},
+  {key:'ctr_7d',lbl:'CTR (Total) 7D',unit:'%',scale:100,tip:'Overall CTR for 7D window'},
+  {key:'nv_ctr_24h',lbl:'NV CTR 24H',unit:'%',scale:100,tip:'New viewer CTR 24H'},
+  {key:'nv_ctr_7d',lbl:'NV CTR 7D',unit:'%',scale:100,tip:'New viewer CTR 7D'},
+  {key:'imp_24h',lbl:'Impressions 24H',unit:'',scale:1,tip:'Total impressions 24H'},
+  {key:'imp_7d',lbl:'Impressions 7D',unit:'',scale:1,tip:'Total impressions 7D'},
+  {key:'views_24h',lbl:'Views 24H',unit:'',scale:1,tip:'Total views 24H'},
+  {key:'views_7d',lbl:'Views 7D',unit:'',scale:1,tip:'Total views 7D'},
+  {key:'ret_24h',lbl:'Retention 24H',unit:'%',scale:100,tip:'Retention % 24H'},
+  {key:'ret_7d',lbl:'Retention 7D',unit:'%',scale:100,tip:'Retention % 7D'},
+];
+
+let W='24h',gM='imp',topM='imp',timeM='imp',dFilter=null;
+let charts={},timer=null,PD=null;
+let FS={text:'',topic:'',format:'',tier:'',cat:''},SS={col:'imp',dir:'desc'};
+
+window.addEventListener('load',function(){if(cfg.csvUrl){showApp();loadData();}});
+document.addEventListener('keydown',function(e){if(e.key==='Escape'){closeM();closeSettings();}});
+
+function showApp(){document.getElementById('setup').classList.add('hide');document.getElementById('app').classList.add('show');}
+function showSetup(){document.getElementById('setup').classList.remove('hide');document.getElementById('app').classList.remove('show');}
+function showErr(m){var e=document.getElementById('serr');e.textContent=m;e.style.display='block';}
+
+function saveLink(){
+  var u=document.getElementById('surl').value.trim();
+  document.getElementById('serr').style.display='none';
+  if(!u){showErr('Paste your Google Sheets link.');return;}
+  if(!u.includes('docs.google.com/spreadsheets')){showErr("Doesn't look like a Google Sheets link.");return;}
+  cfg.csvUrl=toCsv(u);localStorage.setItem(STORE,JSON.stringify(cfg));showApp();loadData();
+}
+function toCsv(u){
+  if(u.includes('output=csv')||u.includes('tqx=out:csv'))return u;
+  var m=u.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/);
+  return m?'https://docs.google.com/spreadsheets/d/'+m[1]+'/gviz/tq?tqx=out:csv&sheet=DATA%20GEOFF':u;
+}
+function resetLink(){if(!confirm('Remove sheet link?'))return;clearTimeout(timer);localStorage.removeItem(STORE);cfg={};PD=null;document.getElementById('surl').value='';showSetup();}
+
+function setWin(w){W=w;['24h','7d','28d'].forEach(function(x){document.getElementById('w'+x).classList.toggle('active',x===w);});if(PD)renderAll();}
+function setGM(v){gM=v;if(PD)renderAll();}
+function setTM(v){timeM=v;if(PD)renderTimeChart();}
+function setTP(v){topM=v;['ctr','views','ret','imp'].forEach(function(x){var b=document.getElementById('tp-'+x);if(b)b.classList.toggle('active',x===v);});if(PD)renderTopic();}
+function setF(k,v){FS[k]=v;updatePills();if(PD)renderFiltered();}
+function clearFilters(){FS={text:'',topic:'',format:'',tier:'',cat:''};dFilter=null;['f-txt','f-top','f-fmt','f-tier','f-cat'].forEach(function(id){var e=document.getElementById(id);if(e)e.value='';});updatePills();if(PD)renderAll();}
+function updatePills(){
+  var r=document.getElementById('active-filters'),parts=[];
+  if(FS.text)parts.push({k:'text',v:'Search: "'+FS.text+'"'});
+  if(FS.topic)parts.push({k:'topic',v:'Topic: '+FS.topic});
+  if(FS.format)parts.push({k:'format',v:'Format: '+FS.format});
+  if(FS.tier)parts.push({k:'tier',v:FS.tier});
+  if(FS.cat)parts.push({k:'cat',v:'Cat: '+FS.cat});
+  if(dFilter)parts.push({k:'donut',v:'Seg: '+dFilter});
+  r.innerHTML=parts.map(function(p){return'<span class="apill">'+p.v+'<button onclick="clrF(\''+p.k+'\')">&times;</button></span>';}).join('');
+}
+function clrF(k){if(k==='donut'){dFilter=null;}else{FS[k]='';}updatePills();if(PD)renderFiltered();}
+function navClick(el){document.querySelectorAll('.nav-item').forEach(function(n){n.classList.remove('active');});el.classList.add('active');}
+function tw(id){var e=document.getElementById(id);if(e)e.classList.toggle('on');}
+
+function getVs(){
+  if(!PD)return[];
+  return PD.videos.filter(function(v){
+    if(FS.text&&!v.name.toLowerCase().includes(FS.text.toLowerCase()))return false;
+    if(FS.topic&&v.topic!==FS.topic)return false;
+    if(FS.format&&v.title_format!==FS.format)return false;
+    if(FS.tier&&v.tier!==FS.tier)return false;
+    if(FS.cat&&v.category!==FS.cat)return false;
+    if(dFilter&&dFilter!==null){if(dFilter==='nv'&&!v['nv_imp_'+W])return false;if(dFilter==='cv'&&!v['cv_imp_'+W])return false;if(dFilter==='rv'&&!v['rv_imp_'+W])return false;}
+    return true;
+  });
+}
+
+function suf(){return '_'+W;}
+
+async function loadData(){
+  document.getElementById('sync-tag').textContent='Syncing...';
+  clearTimeout(timer);
+  try{
+    var res=await fetch(cfg.csvUrl+'&t='+Date.now());
+    if(!res.ok)throw new Error('HTTP '+res.status+'. Re-publish as CSV.');
+    var txt=await res.text();
+    if(txt.trim().startsWith('<'))throw new Error('Got HTML — re-publish as CSV.');
+    PD=parseCsv(txt);
+    populateSelects(PD.videos);
+    renderAll();
+    checkAlerts();
+    document.getElementById('sync-tag').textContent='Updated '+new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+  }catch(e){document.getElementById('sync-tag').textContent='⚠ '+e.message;console.error(e);}
+  finally{timer=setTimeout(loadData,30000);}
+}
+
+function parseCsv(txt){
+  var rows=[],cur=[],f='',inQ=false;
+  for(var i=0;i<txt.length;i++){var c=txt[i];if(inQ){if(c==='"'&&txt[i+1]==='"'){f+='"';i++;}else if(c==='"'){inQ=false;}else f+=c;}else{if(c==='"')inQ=true;else if(c===','){cur.push(f);f='';}else if(c==='\n'){cur.push(f);rows.push(cur);cur=[];f='';}else if(c!=='\r')f+=c;}}
+  if(f||cur.length){cur.push(f);rows.push(cur);}
+  return build(rows);
+}
+
+function build(rows){
+  if(rows.length<2)throw new Error('Sheet is empty.');
+  var H=rows[0].map(function(h){return String(h||'');});
+  var hm={};H.forEach(function(h,i){hm[h]=i;hm[h.trim()]=i;hm[h.trim().toLowerCase()]=i;});
+  function ci(n){return hm[n]!==undefined?hm[n]:hm[n.trim()]!==undefined?hm[n.trim()]:hm[n.trim().toLowerCase()]!==undefined?hm[n.trim().toLowerCase()]:-1;}
+  function cell(r,n){var i=ci(n);return i>=0?r[i]:null;}
+  function num(v){if(v===null||v===undefined||v===''||String(v).startsWith('#'))return null;var n=parseFloat(String(v).replace(/[,%]/g,''));return isNaN(n)?null:n;}
+  function pct(v){if(v===null||v===undefined||v==='')return null;var s=String(v).trim();if(s.endsWith('%'))return parseFloat(s)/100;var n=parseFloat(s);if(isNaN(n))return null;return n>1?n/100:n;}
+  function nc(r,a,b){var v=cell(r,a);return(v!==null&&v!==undefined&&v!=='')?v:cell(r,b);}
+  function toDate(v){if(!v)return null;var s=String(v).trim();if(s.match(/^\d{4}-\d{2}-\d{2}/))return s.slice(0,10);if(s.match(/^\d{1,2}\/\d{1,2}\/\d{4}/)){var p=s.split('/');return p[2].slice(0,4)+'-'+p[0].padStart(2,'0')+'-'+p[1].padStart(2,'0');}return s.slice(0,10)||null;}
+  function dur(v){if(!v)return null;var s=String(v).trim();var m=s.match(/(\d+):(\d+):(\d+)/);if(m)return +m[1]*3600+ +m[2]*60+ +m[3];var n=parseFloat(s);if(!isNaN(n)&&n>0&&n<2)return Math.round(n*86400);return null;}
+
+  var videos=[];
+  for(var i=1;i<rows.length;i++){
+    var r=rows[i],name=cell(r,'NAME');
+    if(!name||String(name).trim()==='')continue;
+    var ns=String(name).trim().replace(/\n/g,'');
+    if(ns.startsWith('Unnamed'))continue;
+    var v={name:ns,
+      tier:String(cell(r,'Tier')||'').trim()||null,
+      category:String(cell(r,'Category')||'').trim()||null,
+      title_format:String(cell(r,'Title Format')||'').trim()||null,
+      hook:String(cell(r,'Emotional Hook')||'').trim()||null,
+      topic:String(cell(r,'TOPIC')||'').trim()||null,
+      pub_date:toDate(cell(r,'PUB_DATE')),
+      vid_dur_s:dur(cell(r,'VID_DUR'))
+    };
+    // 24h
+    v.imp_24h=num(cell(r,'24h (IMP)'));v.views_24h=num(cell(r,'24h (View)'));
+    v.ctr_24h=pct(nc(r,' 24hr CTR','24hr CTR'));v.ret_24h=pct(cell(r,'Retention %'));
+    v.sub_24h=num(cell(r,'SUB_GAIN_24H'));v.likes_24h=num(cell(r,'LIKES_24H'));
+    v.nv_imp_24h=num(cell(r,'NV_IMP_24H'));v.cv_imp_24h=num(cell(r,'CV_IMP_24H'));v.rv_imp_24h=num(cell(r,'RV_IMP_24H'));
+    v.nv_leg_imp_24h=num(cell(r,'NV_LEG_IMP_24H'));v.rv_leg_imp_24h=num(cell(r,'RV_LEG_IMP_24H'));
+    v.nv_views_24h=num(cell(r,'NV_VIEWS_24H'));v.rv_views_24h=num(cell(r,'RV_VIEWS_24H'));v.cv_views_24h=num(cell(r,'CV_VIEWS_24H'));
+    v.nv_ctr_24h=pct(cell(r,'NV_CTR_24H'));v.rv_ctr_24h=pct(cell(r,'RV_CTR_24H'));v.cv_ctr_24h=pct(cell(r,'CV_CTR_24H'));
+    v.nv_avd_24h=dur(cell(r,'NV_AVD_24H'));v.rv_avd_24h=dur(cell(r,'RV_AVD_24H'));
+    // Pre-calculated ratios from sheet
+    v.svr_24h=num(cell(r,'SUB/VIEW RATIO_24hr'));v.snvr_24h=num(cell(r,'SUB/NV RATIO_24hr'));
+    // 7d
+    v.imp_7d=num(nc(r,' 7D (IMP)','7D (IMP)'));v.views_7d=num(cell(r,'NEW (View)'));
+    v.ctr_7d=pct(cell(r,'Total 7D CTR'));v.ret_7d=pct(cell(r,'Retention % 7D'));
+    v.sub_7d=num(cell(r,'SUB_GAIN_7D'));v.likes_7d=num(cell(r,'LIKES_7D'));
+    v.nv_imp_7d=num(cell(r,'NV_IMP_7D'));v.cv_imp_7d=num(cell(r,'CV_IMP_7D'));v.rv_imp_7d=num(cell(r,'RV_IMP_7D'));
+    v.nv_leg_imp_7d=num(cell(r,'NV_LEG_IMP_7D'));v.rv_leg_imp_7d=num(cell(r,'RV_LEG_IMP_7D'));
+    v.nv_views_7d=num(cell(r,'NV_VIEWS_7D'));v.rv_views_7d=num(cell(r,'RV_VIEWS_7D'));
+    v.nv_ctr_7d=pct(cell(r,'NV_CTR_7D'));v.rv_ctr_7d=pct(cell(r,'RV_CTR_7D'));
+    v.nv_avd_7d=dur(cell(r,'NV_AVD_7D'));v.rv_avd_7d=dur(cell(r,'RV_AVD_7D'));
+    v.svr_7d=num(cell(r,'SUB/VIEW RATIO_7D'));v.snvr_7d=num(cell(r,'SUB/NV RATIO_7D'));
+    // 28d
+    v.imp_28d=num(cell(r,'28D (IMP)'));v.views_28d=num(cell(r,'28D (VIEW)'));
+    v.ctr_28d=pct(cell(r,'CTR_ 28D'));v.ret_28d=pct(cell(r,'Retention % 28D'));
+    v.sub_28d=num(cell(r,'SUB_GAIN_28D'));v.likes_28d=num(cell(r,'LIKES_28D'));
+    v.nv_imp_28d=num(cell(r,'NV_IMP_28D'));v.cv_imp_28d=num(cell(r,'CV_IMP_28D'));v.rv_imp_28d=num(cell(r,'RV_IMP_28D'));
+    v.nv_leg_imp_28d=num(cell(r,'NV_LEG_IMP_28D'));v.rv_leg_imp_28d=num(cell(r,'RV_LEG_IMP_28D'));
+    v.nv_views_28d=num(cell(r,'NV_VIEWS_28D'));v.rv_views_28d=num(cell(r,'RV_VIEWS_28D'));
+    v.nv_ctr_28d=pct(cell(r,'NV_CTR_28D'));v.rv_ctr_28d=pct(cell(r,'RV_CTR_28D'));
+    v.nv_avd_28d=dur(cell(r,'NV_AVD_28D'));v.rv_avd_28d=dur(cell(r,'RV_AVD_28D'));
+    v.svr_28d=num(cell(r,'SUB/VIEW RATIO_28D'));v.snvr_28d=num(cell(r,'SUB/NV RATIO_28D'));
+    videos.push(v);
+  }
+  if(!videos.length)throw new Error('No rows found. Check tab is named "DATA GEOFF".');
+  function avg(f){var a=videos.map(function(x){return x[f];}).filter(function(x){return x!=null&&!isNaN(x);});return a.length?a.reduce(function(a,b){return a+b;})/a.length:0;}
+  var bench={};
+  ['24h','7d','28d'].forEach(function(s){
+    bench[s]={ctr:avg('ctr_'+s),imp:avg('imp_'+s),views:avg('views_'+s),ret:avg('ret_'+s),sub:avg('sub_'+s),
+      nv_imp:avg('nv_imp_'+s),cv_imp:avg('cv_imp_'+s),rv_imp:avg('rv_imp_'+s),
+      nv_ctr:avg('nv_ctr_'+s),rv_ctr:avg('rv_ctr_'+s),nv_avd:avg('nv_avd_'+s),rv_avd:avg('rv_avd_'+s)};
+  });
+  return{videos:videos,bench:bench};
+}
+
+function populateSelects(vs){
+  function fill(id,vals,d){var s=document.getElementById(id);if(!s)return;var c=s.value;s.innerHTML='<option value="">'+d+'</option>';vals.forEach(function(v){var o=document.createElement('option');o.value=v;o.textContent=v;s.appendChild(o);});s.value=c;}
+  fill('f-top',[...new Set(vs.map(function(v){return v.topic;}).filter(Boolean))].sort(),'All topics');
+  fill('f-fmt',[...new Set(vs.map(function(v){return v.title_format;}).filter(Boolean))].sort(),'All formats');
+  fill('f-cat',[...new Set(vs.map(function(v){return v.category;}).filter(Boolean))].sort(),'All categories');
+}
+
+function checkAlerts(){
+  if(!PD)return;
+  var b=PD.bench[W],alerts=[];
+  var t=THRESH;
+  var ctrf='ctr_'+W,impf='imp_'+W;
+  var avgCtr=b.ctr,avgImp=b.imp;
+  if(t['ctr_'+W]&&avgCtr<t['ctr_'+W]*0.85)alerts.push({r:true,msg:'Avg CTR '+(avgCtr*100).toFixed(1)+'% is below your '+(t['ctr_'+W]*100).toFixed(1)+'% target'});
+  var recent=PD.videos.filter(function(v){return v.pub_date&&v['imp_'+W]!=null;}).sort(function(a,b){return new Date(b.pub_date)-new Date(a.pub_date);}).slice(0,3);
+  var old=PD.videos.filter(function(v){return v.pub_date&&v['imp_'+W]!=null;}).sort(function(a,b){return new Date(b.pub_date)-new Date(a.pub_date);}).slice(3,8);
+  if(recent.length&&old.length){var ri=recent.reduce(function(a,v){return a+v['imp_'+W];},0)/recent.length;var oi=old.reduce(function(a,v){return a+v['imp_'+W];},0)/old.length;if(oi>0&&(ri-oi)/oi<-0.2)alerts.push({r:true,msg:'Impressions dropped '+Math.abs(Math.round((ri-oi)/oi*100))+'% in last 3 videos vs previous 5'});}
+  var bar=document.getElementById('alerts');
+  if(alerts.length){bar.className='alerts show';bar.innerHTML='<span style="font-size:8px;color:var(--amber);letter-spacing:.07em;text-transform:uppercase">Alerts</span>'+alerts.map(function(a){return'<span class="alert-i"><span class="adot'+(a.r?' r':'')+'"></span>'+a.msg+'</span>';}).join('');}else{bar.className='alerts';}
+}
+
+var M='rgba(255,255,255,.36)',GR='rgba(255,255,255,.05)';
+function dc(k){if(charts[k]){charts[k].destroy();delete charts[k];}}
+function ga(vs,kF,vF){var m={};vs.forEach(function(v){var k=kF(v),val=vF(v);if(!k||val==null||isNaN(val))return;if(!m[k])m[k]=[];m[k].push(val);});var r={};Object.keys(m).forEach(function(k){r[k]=m[k].reduce(function(a,b){return a+b;})/m[k].length;});return r;}
+function avf(vs,f){var a=vs.map(function(x){return x[f];}).filter(function(x){return x!=null&&!isNaN(x);});return a.length?a.reduce(function(a,b){return a+b;})/a.length:0;}
+
+function perfScore(v,b){
+  var s=[],d=v;var w=W;
+  if(b.ctr>0&&d['ctr_'+w]!=null)s.push({k:'CTR',sc:Math.round(Math.min(d['ctr_'+w]/b.ctr,2)*50)});
+  if(b.imp>0&&d['imp_'+w]!=null)s.push({k:'Impr.',sc:Math.round(Math.min(d['imp_'+w]/b.imp,2)*50)});
+  if(b.ret>0&&d['ret_'+w]!=null)s.push({k:'Ret.',sc:Math.round(Math.min(d['ret_'+w]/b.ret,2)*50)});
+  if(b.views>0&&d['views_'+w]!=null)s.push({k:'Views',sc:Math.round(Math.min(d['views_'+w]/b.views,2)*50)});
+  if(!s.length)return{total:null,parts:[]};
+  return{total:Math.round(s.reduce(function(a,x){return a+x.sc;},0)/s.length),parts:s};
+}
+
+// Personal threshold color coding
+function tcls(val,key){
+  var t=THRESH[key];
+  if(val==null||!t||t===0)return'cn';
+  var r=val/t;
+  return r>=1?'cg':r>=0.85?'cy':'cr';
+}
+
+function renderAll(){
+  var vs=getVs(), b=PD.bench[W];
+  renderWeekly(vs);renderBestOf(vs,b);renderKpis(vs,b);renderTrend(vs);
+  renderDonuts(vs);renderDiagnostic(vs,b);renderNvGrowth(vs);
+  renderTimeChart();renderCtrTime(vs);renderCtrSplit(vs);renderAvdSplit(vs);
+  renderSvr(vs,b);renderSnvr(vs,b);renderSubGrowth(vs,b);
+  renderTopic();renderFmt(vs,b);renderScat();renderDurScat(vs);
+  renderLeaders(vs);renderTiers(vs,b);renderCadence(vs);renderTable(vs,b);
+}
+function renderFiltered(){if(PD)renderAll();}
+
+function renderWeekly(vs){
+  var sorted=vs.filter(function(v){return v.pub_date&&v['imp_'+W]!=null;}).sort(function(a,b){return new Date(b.pub_date)-new Date(a.pub_date);});
+  if(sorted.length<6){document.getElementById('weekly-grid').innerHTML='<div style="font-size:10px;color:var(--muted);padding:8px 0">Need 6+ videos with data for weekly summary</div>';return;}
+  var r5=sorted.slice(0,5),p5=sorted.slice(5,10);
+  function avg5(arr,f){var a=arr.filter(function(v){return v[f]!=null;});return a.length?a.reduce(function(s,v){return s+v[f];},0)/a.length:null;}
+  var metrics=[
+    {k:'ctr_'+W,lbl:'Avg CTR',fmt:function(x){return(x*100).toFixed(1)+'%';}},
+    {k:'imp_'+W,lbl:'Avg Impressions',fmt:function(x){return(x/1000).toFixed(1)+'K';}},
+    {k:'views_'+W,lbl:'Avg Views',fmt:function(x){return Math.round(x).toLocaleString();}},
+    {k:'ret_'+W,lbl:'Avg Retention',fmt:function(x){return(x*100).toFixed(0)+'%';}},
+    {k:'sub_'+W,lbl:'Avg Subs',fmt:function(x){return'+'+Math.round(x);}},
+  ];
+  document.getElementById('weekly-grid').innerHTML=metrics.map(function(m){
+    var rv=avg5(r5,m.k),pv=avg5(p5,m.k);
+    var delta=rv!=null&&pv!=null&&pv>0?((rv-pv)/pv*100):null;
+    var dc=delta!=null?(Math.abs(delta)<1?'flat':delta>0?'up':'dn'):'flat';
+    var darr=delta!=null?(Math.abs(delta)<1?'—':delta>0?'↑':'↓'):'';
+    return'<div class="wcard"><div class="wcard-lbl">'+m.lbl+'</div>'+
+      '<div class="wcard-val">'+(rv!=null?m.fmt(rv):'—')+'</div>'+
+      '<div class="wcard-delta '+(delta!=null?dc:'flat')+'">'+darr+(delta!=null?' '+Math.abs(delta).toFixed(0)+'% vs prev 5':'')+'</div></div>';
+  }).join('');
+}
+
+function renderBestOf(vs,b){
+  var w=W;
+  function best(f){var a=vs.filter(function(v){return v[f]!=null;});return a.length?a.reduce(function(p,v){return v[f]>p[f]?v:p;}):null;}
+  var bC=best('ctr_'+w),bI=best('imp_'+w),bR=best('ret_'+w),bS=best('sub_'+w);
+  function card(lbl,v,fFn,fmt,c){
+    if(!v)return'<div class="bcard" style="border-left-color:'+c+'"><div class="bcard-lbl">'+lbl+'</div><div class="bcard-val" style="color:'+c+'">—</div></div>';
+    return'<div class="bcard" style="border-left-color:'+c+'" onclick="openM(\''+esc(v.name)+'\')"><div class="bcard-lbl">'+lbl+'</div><div class="bcard-val" style="color:'+c+'">'+fmt(fFn(v))+'</div><div class="bcard-nm">'+v.name+'</div></div>';
+  }
+  document.getElementById('best-row').innerHTML=
+    card('Best CTR',bC,function(v){return v['ctr_'+w];},function(x){return(x*100).toFixed(1)+'%';},'#4A9EE8')+
+    card('Most Impressions',bI,function(v){return v['imp_'+w];},function(x){return(x/1000).toFixed(1)+'K';},'#F0A030')+
+    card('Best Retention',bR,function(v){return v['ret_'+w];},function(x){return(x*100).toFixed(0)+'%';},'#1DB87A')+
+    card('Most Subs',bS,function(v){return v['sub_'+w];},function(x){return'+'+Math.round(x);},'#E060A0');
+}
+
+function renderKpis(vs,b){
+  var w=W;
+  var svrs=vs.filter(function(v){return v['svr_'+w]!=null;}).map(function(v){return v['svr_'+w];});
+  var snvrs=vs.filter(function(v){return v['snvr_'+w]!=null;}).map(function(v){return v['snvr_'+w];});
+  var avgSvr=svrs.length?svrs.reduce(function(a,b){return a+b;})/svrs.length:null;
+  var avgSnvr=snvrs.length?snvrs.reduce(function(a,b){return a+b;})/snvrs.length:null;
+  var items=[
+    {k:'ctr',l:'Avg CTR',v:avf(vs,'ctr_'+w),fmt:function(x){return(x*100).toFixed(1)+'%';},tk:'ctr_'+w,tip:'Click-through rate. Below 5% = weak packaging. Above 10% = exceptional. This measures thumbnail + title strength.'},
+    {k:'imp',l:'Avg Impr.',v:avf(vs,'imp_'+w),fmt:function(x){return(x/1000).toFixed(1)+'K';},tk:'imp_'+w,tip:'How often YouTube shows your thumbnails. Rising = better distribution. Flat = algorithm not testing content widely.'},
+    {k:'views',l:'Avg Views',v:avf(vs,'views_'+w),fmt:function(x){return Math.round(x).toLocaleString();},tk:'views_'+w,tip:'Actual video plays. Views = Impressions × CTR. Low views despite high impressions = packaging problem.'},
+    {k:'ret',l:'Avg Retention',v:avf(vs,'ret_'+w),fmt:function(x){return(x*100).toFixed(0)+'%';},tk:'ret_'+w,tip:'Average % of video watched. Above 40% is strong. This signals content quality to the algorithm — affects future distribution.'},
+    {k:'nv_ctr',l:'NV CTR',v:avf(vs,'nv_ctr_'+w),fmt:function(x){return(x*100).toFixed(1)+'%';},tk:'nv_ctr_'+w,tip:'CTR from new viewers only. This is cold audience appeal. Low NV CTR = your title works for fans but not strangers.'},
+    {k:'svr',l:'Sub/View %',v:avgSvr,fmt:function(x){return(x*100).toFixed(3)+'%';},tk:null,tip:'What % of ALL viewers subscribe. A spike on a video = that video has unusually strong conversion. Find why and replicate.'},
+    {k:'snvr',l:'Sub/NV %',v:avgSnvr,fmt:function(x){return(x*100).toFixed(3)+'%';},tk:null,tip:'What % of NEW viewers subscribe. Your most important growth metric — how well you turn strangers into fans.'},
+    {k:'sub',l:'Avg Subs',v:avf(vs,'sub_'+w),fmt:function(x){return'+'+Math.round(x);},tk:null,tip:'Average subscribers gained per video in this window.'}
+  ];
+  function dd(val,tk){if(!tk)return'';var t=THRESH[tk];if(!t||t===0||val==null)return'';var p=(val-t)/t*100;var c=p>=0?'var(--teal)':'var(--coral)';return'<span class="kpi-d" style="color:'+c+'">'+(p>=0?'+':'')+p.toFixed(0)+'% vs target</span>';}
+  document.getElementById('kpi-grid').style.gridTemplateColumns='repeat('+items.length+',1fr)';
+  document.getElementById('kpi-row').style.gridTemplateColumns='repeat('+items.length+',1fr)';
+  document.getElementById('kpi-row').innerHTML=items.map(function(it){
+    return'<div class="kpicard" title="'+it.tip+'"><div class="kpi-lbl">'+it.l+' <span class="q">?</span></div>'+
+      '<div class="kpi-val">'+(it.v!=null?it.fmt(it.v):'—')+dd(it.v,it.tk)+'</div>'+
+      '<div class="kpi-tip">'+it.tip+'</div></div>';
+  }).join('');
+}
+
+function renderTrend(vs){
+  var sorted=vs.filter(function(v){return v.pub_date&&v['imp_'+W]!=null;}).sort(function(a,b){return new Date(b.pub_date)-new Date(a.pub_date);});
+  if(sorted.length<6){document.getElementById('trend-c').innerHTML='<span style="color:var(--muted)">Need 6+ videos</span>';return;}
+  var r5=sorted.slice(0,5),p5=sorted.slice(5,10);
+  function tv(f){var r=r5.filter(function(v){return v[f]!=null;}),p=p5.filter(function(v){return v[f]!=null;});if(!r.length||!p.length)return null;var ar=r.reduce(function(a,v){return a+v[f];},0)/r.length,ap=p.reduce(function(a,v){return a+v[f];},0)/p.length;return ap>0?((ar-ap)/ap*100):null;}
+  function ti(lbl,p,tip){if(p===null)return'';var cl=Math.abs(p)<1?'flat':p>0?'up':'dn';var arr=Math.abs(p)<1?'—':p>0?'↑':'↓';return'<span class="ti" title="Last 5 vs prev 5: '+lbl+'"><span class="tnm">'+lbl+'</span><span class="'+cl+'">'+arr+' '+Math.abs(p).toFixed(0)+'%</span></span>';}
+  document.getElementById('trend-c').innerHTML=ti('CTR',tv('ctr_'+W))+ti('Impr.',tv('imp_'+W))+ti('Views',tv('views_'+W))+ti('Retention',tv('ret_'+W))+ti('Subs',tv('sub_'+W))+ti('NV Impr.',tv('nv_imp_'+W));
+}
+
+function renderDonuts(vs){
+  dc('d1');dc('d2');
+  var nv=0,cv=0,rv=0;vs.forEach(function(v){if(v['nv_imp_'+W])nv+=v['nv_imp_'+W];if(v['cv_imp_'+W])cv+=v['cv_imp_'+W];if(v['rv_imp_'+W])rv+=v['rv_imp_'+W];});
+  var t1=nv+cv+rv;
+  if(t1>0){
+    document.getElementById('d1t').textContent=(t1/1000).toFixed(0)+'K';
+    charts.d1=new Chart(document.getElementById('d1').getContext('2d'),{type:'doughnut',data:{labels:['New (NV)','Casual (CV)','Regular (RV)'],datasets:[{data:[+(nv/t1*100).toFixed(1),+(cv/t1*100).toFixed(1),+(rv/t1*100).toFixed(1)],backgroundColor:['#4A9EE8','#1DB87A','#F0A030'],borderWidth:0,hoverOffset:4}]},options:{responsive:false,cutout:'62%',plugins:{legend:{display:false},tooltip:{callbacks:{label:function(c){return' '+c.label+': '+c.raw+'%';}}}}}});
+    document.getElementById('d1l').innerHTML=[['#4A9EE8','New (NV)',nv,'nv'],['#1DB87A','Casual (CV)',cv,'cv'],['#F0A030','Regular (RV)',rv,'rv']].map(function(x){var p=(t1>0?x[2]/t1*100:0).toFixed(0);return'<div class="dseg'+(dFilter===x[3]?' on':'')+'" onclick="setDFilter(\''+x[3]+'\')"><span class="ddot" style="background:'+x[0]+'"></span><span class="dseg-nm">'+x[1]+'</span><span class="dseg-v">'+(x[2]/1000).toFixed(1)+'K</span><span class="dseg-p">'+p+'%</span></div>';}).join('');
+  }
+  var nvl=0,rvl=0;vs.forEach(function(v){if(v['nv_leg_imp_'+W])nvl+=v['nv_leg_imp_'+W];if(v['rv_leg_imp_'+W])rvl+=v['rv_leg_imp_'+W];});
+  var t2=nvl+rvl;
+  if(t2>0){
+    document.getElementById('d2t').textContent=(t2/1000).toFixed(0)+'K';
+    charts.d2=new Chart(document.getElementById('d2').getContext('2d'),{type:'doughnut',data:{labels:['New legacy (NV_LEG)','Returning (RV_LEG)'],datasets:[{data:[+(nvl/t2*100).toFixed(1),+(rvl/t2*100).toFixed(1)],backgroundColor:['#8B80E8','#E060A0'],borderWidth:0,hoverOffset:4}]},options:{responsive:false,cutout:'62%',plugins:{legend:{display:false},tooltip:{callbacks:{label:function(c){return' '+c.label+': '+c.raw+'%';}}}}}});
+    document.getElementById('d2l').innerHTML=[['#8B80E8','New (NV_LEG)',nvl],['#E060A0','Returning (RV_LEG)',rvl]].map(function(x){var p=(t2>0?x[2]/t2*100:0).toFixed(0);return'<div class="dseg"><span class="ddot" style="background:'+x[0]+'"></span><span class="dseg-nm">'+x[1]+'</span><span class="dseg-v">'+(x[2]/1000).toFixed(1)+'K</span><span class="dseg-p">'+p+'%</span></div>';}).join('');
+  }
+}
+function setDFilter(seg){dFilter=dFilter===seg?null:seg;updatePills();if(PD)renderFiltered();}
+
+function renderDiagnostic(vs,b){
+  var w=W,tCtr=THRESH['ctr_'+w]||b.ctr,tImp=THRESH['imp_'+w]||b.imp,tRet=THRESH['ret_'+w]||b.ret;
+  var buckets=[
+    {id:'d-win',icon:'🏆',title:'Winners',desc:'High CTR + high impressions — packaging and distribution both strong',color:'var(--teal)',test:function(v){return v['ctr_'+w]>=tCtr&&v['imp_'+w]>=tImp;}},
+    {id:'d-pack',icon:'🎨',title:'Packaging problem',desc:'High impressions but low CTR — YouTube is showing it but people aren\'t clicking',color:'var(--coral)',test:function(v){return v['imp_'+w]>=tImp&&v['ctr_'+w]<tCtr;}},
+    {id:'d-dist',icon:'📡',title:'Distribution problem',desc:'High CTR but low impressions — good packaging, YouTube isn\'t distributing it',color:'var(--amber)',test:function(v){return v['ctr_'+w]>=tCtr&&v['imp_'+w]<tImp;}},
+    {id:'d-gem',icon:'💎',title:'Hidden gems',desc:'High retention but below-average impressions — great content, weak packaging or reach',color:'var(--purple)',test:function(v){return v['ret_'+w]>=tRet&&v['imp_'+w]<tImp;}},
+  ];
+  document.getElementById('diag-grid').innerHTML=buckets.map(function(bkt){
+    var matching=vs.filter(function(v){return bkt.test(v)&&v['ctr_'+w]!=null&&v['imp_'+w]!=null;});
+    return'<div class="diag-card" onclick="openDiagModal(\''+bkt.id+'\')">'+
+      '<div class="diag-icon">'+bkt.icon+'</div>'+
+      '<div class="diag-title" style="color:'+bkt.color+'">'+bkt.title+'</div>'+
+      '<div class="diag-desc">'+bkt.desc+'</div>'+
+      '<div class="diag-count" style="color:'+bkt.color+'">'+matching.length+'</div>'+
+      '<div style="font-size:9px;color:var(--dim)">videos</div>'+
+      '</div>';
+  }).join('');
+  // Store for modal use
+  window._diagBuckets=buckets;
+}
+function openDiagModal(id){
+  if(!PD)return;
+  var bkt=window._diagBuckets.find(function(b){return b.id===id;});
+  if(!bkt)return;
+  var vs=getVs(),b=PD.bench[W],w=W;
+  var matching=vs.filter(function(v){return bkt.test(v)&&v['ctr_'+w]!=null&&v['imp_'+w]!=null;}).sort(function(a,c){return(c['imp_'+w]||0)-(a['imp_'+w]||0);});
+  document.getElementById('mtitle').textContent=bkt.icon+' '+bkt.title;
+  document.getElementById('mmeta').innerHTML='<span>'+matching.length+' videos</span><span style="color:var(--muted)">'+bkt.desc+'</span>';
+  document.getElementById('mbody').innerHTML=matching.map(function(v){
+    var tc=TC[v.topic]||'#7a7a8c';
+    return'<div style="background:var(--bg3);border-radius:7px;padding:9px 12px;cursor:pointer;margin-bottom:5px" onclick="openM(\''+esc(v.name)+'\')">'+
+      '<div style="font-size:11px;font-weight:500;margin-bottom:5px">'+v.name+'</div>'+
+      '<div style="display:flex;gap:10px;flex-wrap:wrap;font-size:10px;color:var(--muted)">'+
+      '<span>CTR: <span style="font-family:var(--mono);color:'+(v['ctr_'+w]>=(THRESH['ctr_'+w]||b.ctr)?'var(--teal)':'var(--coral)')+'">'+( v['ctr_'+w]!=null?(v['ctr_'+w]*100).toFixed(1)+'%':'—')+'</span></span>'+
+      '<span>Impr.: <span style="font-family:var(--mono)">'+( v['imp_'+w]!=null?(v['imp_'+w]/1000).toFixed(1)+'K':'—')+'</span></span>'+
+      '<span>Ret.: <span style="font-family:var(--mono)">'+( v['ret_'+w]!=null?(v['ret_'+w]*100).toFixed(0)+'%':'—')+'</span></span>'+
+      (v.pub_date?'<span style="color:var(--dim)">'+v.pub_date+'</span>':'')+
+      '</div></div>';
+  }).join('')||'<div style="color:var(--muted);font-size:11px;padding:10px 0">No videos match this pattern</div>';
+  document.getElementById('moverlay').classList.add('open');
+}
+
+function renderNvGrowth(vs){
+  dc('nvg');
+  var sorted=vs.filter(function(v){return v.pub_date&&v['nv_imp_'+W]!=null;}).sort(function(a,b){return new Date(a.pub_date)-new Date(b.pub_date);});
+  if(!sorted.length)return;
+  var data=sorted.map(function(v){return v['nv_imp_'+W];});
+  var avg=data.reduce(function(a,b){return a+b;})/data.length;
+  // NV Momentum: nv_7d / nv_24h ratio
+  var momentum=sorted.map(function(v){return(v.nv_imp_7d!=null&&v.nv_imp_24h!=null&&v.nv_imp_24h>0)?v.nv_imp_7d/v.nv_imp_24h:null;});
+  var peaks=data.map(function(d,i){return{i:i,mult:avg>0?d/avg:1};}).sort(function(a,b){return b.mult-a.mult;}).slice(0,3);
+  var peakIdx=peaks.map(function(p){return p.i;});
+  var ptC=data.map(function(_,i){return peakIdx.indexOf(i)>=0?'#F0A030':'#4A9EE8';});
+  var ptR=data.map(function(_,i){return peakIdx.indexOf(i)>=0?7:3;});
+  document.getElementById('nv-peak').textContent=peaks[0]?'Peak: '+sorted[peaks[0].i].name.slice(0,28)+'… ('+peaks[0].mult.toFixed(1)+'x avg)':'';
+  charts.nvg=new Chart(document.getElementById('c-nvg').getContext('2d'),{type:'line',data:{labels:sorted.map(function(v){return v.pub_date.slice(5);}),datasets:[
+    {label:'NV Impr.',data:data,borderColor:'#4A9EE8',borderWidth:2,pointBackgroundColor:ptC,pointRadius:ptR,pointHoverRadius:9,fill:true,backgroundColor:'rgba(74,158,232,.05)',tension:.35},
+    {label:'Avg',data:Array(data.length).fill(avg),borderColor:'rgba(255,255,255,.15)',borderWidth:1.5,borderDash:[4,3],pointRadius:0,fill:false}
+  ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{title:function(c){return sorted[c[0].dataIndex].name;},label:function(c){if(c.datasetIndex===1)return' '+Math.round(c.raw).toLocaleString()+' avg';var m=avg>0?(c.raw/avg).toFixed(2)+'x avg':'';var mom=momentum[c.dataIndex]!=null?' · Momentum: '+momentum[c.dataIndex].toFixed(1)+'x (7D/24H)':'';return' '+c.raw.toLocaleString()+' NV impr. ('+m+')'+mom;}}}},scales:{x:{ticks:{color:M,font:{size:9},autoSkip:true,maxRotation:45},grid:{display:false}},y:{ticks:{color:M,font:{size:9},callback:function(v){return(v/1000).toFixed(0)+'K';}},grid:{color:GR},border:{display:false}}},onClick:function(e,el){if(el.length&&el[0].datasetIndex===0)openM(sorted[el[0].index].name);}});
+}
+
+function renderTimeChart(){
+  dc('ctim');
+  if(!PD)return;
+  var vs=getVs(),f=timeM+'_'+W;
+  var sorted=vs.filter(function(v){return v.pub_date&&v[f]!=null;}).sort(function(a,b){return new Date(a.pub_date)-new Date(b.pub_date);});
+  if(!sorted.length)return;
+  var data=sorted.map(function(v){return v[f];});
+  var avg=data.reduce(function(a,b){return a+b;})/data.length;
+  var isP=timeM==='ctr'||timeM==='ret';
+  charts.ctim=new Chart(document.getElementById('c-time').getContext('2d'),{type:'bar',data:{labels:sorted.map(function(v){return v.pub_date.slice(5);}),datasets:[{data:data,backgroundColor:data.map(function(d){return d>=avg?'rgba(74,158,232,.8)':'rgba(100,100,115,.35)';}),borderWidth:0,barPercentage:.8},{data:Array(data.length).fill(avg),type:'line',borderColor:'#F0A030',borderWidth:1.5,borderDash:[4,3],pointRadius:0,fill:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{title:function(c){return sorted[c[0].dataIndex].name.slice(0,44)+'...';},label:function(c){return c.datasetIndex===0?' '+c.raw.toLocaleString()+(isP?'%':' impr.'):' avg';}}}},scales:{x:{ticks:{color:M,font:{size:9},autoSkip:true,maxRotation:45},grid:{display:false}},y:{ticks:{color:M,font:{size:9},callback:function(v){return isP?v+'%':(v/1000).toFixed(0)+'K';}},grid:{color:GR},border:{display:false}}},onClick:function(e,el){if(el.length)openM(sorted[el[0].index].name);}});
+}
+
+function renderCtrTime(vs){
+  dc('ctrt');
+  var sorted=vs.filter(function(v){return v.pub_date&&v['nv_ctr_'+W]!=null&&v['ctr_'+W]!=null;}).sort(function(a,b){return new Date(a.pub_date)-new Date(b.pub_date);});
+  if(!sorted.length)return;
+  charts.ctrt=new Chart(document.getElementById('c-ctrt').getContext('2d'),{type:'line',data:{labels:sorted.map(function(v){return v.pub_date.slice(5);}),datasets:[{label:'NV CTR',data:sorted.map(function(v){return+(v['nv_ctr_'+W]*100).toFixed(2);}),borderColor:'#4A9EE8',borderWidth:2,pointRadius:3,pointBackgroundColor:'#4A9EE8',fill:false,tension:.3},{label:'Total CTR',data:sorted.map(function(v){return+(v['ctr_'+W]*100).toFixed(2);}),borderColor:'#F0A030',borderWidth:1.5,borderDash:[4,3],pointRadius:2,pointBackgroundColor:'#F0A030',fill:false,tension:.3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{title:function(c){return sorted[c[0].dataIndex].name.slice(0,44)+'...';},label:function(c){return' '+c.dataset.label+': '+c.raw.toFixed(1)+'%';}}}},scales:{x:{ticks:{color:M,font:{size:9},autoSkip:true,maxRotation:45},grid:{display:false}},y:{ticks:{color:M,font:{size:9},callback:function(v){return v+'%';}},grid:{color:GR},border:{display:false}}},onClick:function(e,el){if(el.length)openM(sorted[el[0].index].name);}});
+}
+
+function renderCtrSplit(vs){
+  dc('ctrs');
+  var sorted=vs.filter(function(v){return v['nv_ctr_'+W]!=null&&v['rv_ctr_'+W]!=null&&v.pub_date;}).sort(function(a,b){return new Date(a.pub_date)-new Date(b.pub_date);});
+  if(!sorted.length)return;
+  charts.ctrs=new Chart(document.getElementById('c-ctrs').getContext('2d'),{type:'bar',data:{labels:sorted.map(function(v){return v.pub_date.slice(5);}),datasets:[{label:'NV',data:sorted.map(function(v){return+(v['nv_ctr_'+W]*100).toFixed(2);}),backgroundColor:'rgba(74,158,232,.75)',borderWidth:0,barPercentage:.45,categoryPercentage:.8},{label:'Returning',data:sorted.map(function(v){return+(v['rv_ctr_'+W]*100).toFixed(2);}),backgroundColor:'rgba(240,160,48,.75)',borderWidth:0,barPercentage:.45,categoryPercentage:.8}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{title:function(c){return sorted[c[0].dataIndex].name.slice(0,44)+'...';},label:function(c){return' '+c.dataset.label+' CTR: '+c.raw.toFixed(1)+'%';}}}},scales:{x:{ticks:{color:M,font:{size:9},autoSkip:true,maxRotation:45},grid:{display:false}},y:{ticks:{color:M,font:{size:9},callback:function(v){return v+'%';}},grid:{color:GR},border:{display:false}}},onClick:function(e,el){if(el.length)openM(sorted[el[0].index].name);}});
+}
+
+function renderAvdSplit(vs){
+  dc('avds');
+  var sorted=vs.filter(function(v){return v['nv_avd_'+W]!=null&&v['rv_avd_'+W]!=null&&v.pub_date;}).sort(function(a,b){return new Date(a.pub_date)-new Date(b.pub_date);});
+  if(!sorted.length)return;
+  charts.avds=new Chart(document.getElementById('c-avds').getContext('2d'),{type:'bar',data:{labels:sorted.map(function(v){return v.pub_date.slice(5);}),datasets:[{label:'NV',data:sorted.map(function(v){return+(v['nv_avd_'+W]/60).toFixed(1);}),backgroundColor:'rgba(74,158,232,.75)',borderWidth:0,barPercentage:.45,categoryPercentage:.8},{label:'Returning',data:sorted.map(function(v){return+(v['rv_avd_'+W]/60).toFixed(1);}),backgroundColor:'rgba(240,160,48,.75)',borderWidth:0,barPercentage:.45,categoryPercentage:.8}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{title:function(c){return sorted[c[0].dataIndex].name.slice(0,44)+'...';},label:function(c){return' '+c.dataset.label+' AVD: '+c.raw.toFixed(1)+'min';}}}},scales:{x:{ticks:{color:M,font:{size:9},autoSkip:true,maxRotation:45},grid:{display:false}},y:{ticks:{color:M,font:{size:9},callback:function(v){return v+'m';}},grid:{color:GR},border:{display:false}}},onClick:function(e,el){if(el.length)openM(sorted[el[0].index].name);}});
+}
+
+function renderSvr(vs,b){
+  dc('svr');
+  var sorted=vs.filter(function(v){return v['svr_'+W]!=null&&v.pub_date;}).sort(function(a,b){return new Date(a.pub_date)-new Date(b.pub_date);});
+  if(!sorted.length)return;
+  var data=sorted.map(function(v){return+(v['svr_'+W]*100).toFixed(4);});
+  var avg=data.reduce(function(a,b){return a+b;})/data.length;
+  charts.svr=new Chart(document.getElementById('c-svr').getContext('2d'),{type:'bar',data:{labels:sorted.map(function(v){return v.pub_date.slice(5);}),datasets:[{data:data,backgroundColor:data.map(function(d){return d>=avg?'rgba(29,184,122,.8)':'rgba(232,84,42,.6)';}),borderWidth:0,barPercentage:.8},{data:Array(data.length).fill(avg),type:'line',borderColor:'rgba(255,255,255,.18)',borderWidth:1.5,borderDash:[4,3],pointRadius:0,fill:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{title:function(c){return sorted[c[0].dataIndex].name;},label:function(c){return c.datasetIndex===0?' '+c.raw+'% sub/view':' avg';}}}},scales:{x:{ticks:{color:M,font:{size:9},autoSkip:true,maxRotation:45},grid:{display:false}},y:{ticks:{color:M,font:{size:9},callback:function(v){return v+'%';}},grid:{color:GR},border:{display:false}}},onClick:function(e,el){if(el.length)openM(sorted[el[0].index].name);}});
+}
+
+function renderSnvr(vs,b){
+  dc('snvr');
+  var sorted=vs.filter(function(v){return v['snvr_'+W]!=null&&v.pub_date;}).sort(function(a,b){return new Date(a.pub_date)-new Date(b.pub_date);});
+  if(!sorted.length){var el=document.getElementById('c-snvr');if(el)el.parentElement.innerHTML='<p style="color:var(--muted);font-size:10px;padding:8px 0">SUB/NV RATIO column not found</p>';return;}
+  var data=sorted.map(function(v){return+(v['snvr_'+W]*100).toFixed(4);});
+  var avg=data.reduce(function(a,b){return a+b;})/data.length;
+  charts.snvr=new Chart(document.getElementById('c-snvr').getContext('2d'),{type:'bar',data:{labels:sorted.map(function(v){return v.pub_date.slice(5);}),datasets:[{data:data,backgroundColor:data.map(function(d){return d>=avg?'rgba(74,158,232,.85)':'rgba(232,84,42,.6)';}),borderWidth:0,barPercentage:.8},{data:Array(data.length).fill(avg),type:'line',borderColor:'rgba(255,255,255,.18)',borderWidth:1.5,borderDash:[4,3],pointRadius:0,fill:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{title:function(c){return sorted[c[0].dataIndex].name;},label:function(c){return c.datasetIndex===0?' '+c.raw+'% sub/NV':' avg';}}}},scales:{x:{ticks:{color:M,font:{size:9},autoSkip:true,maxRotation:45},grid:{display:false}},y:{ticks:{color:M,font:{size:9},callback:function(v){return v+'%';}},grid:{color:GR},border:{display:false}}},onClick:function(e,el){if(el.length)openM(sorted[el[0].index].name);}});
+}
+
+function renderSubGrowth(vs,b){
+  dc('subg');
+  var sorted=vs.filter(function(v){return v.pub_date&&v['sub_'+W]!=null;}).sort(function(a,b){return new Date(a.pub_date)-new Date(b.pub_date);});
+  if(!sorted.length)return;
+  var data=sorted.map(function(v){return v['sub_'+W];});
+  var avg=b.sub||0;
+  charts.subg=new Chart(document.getElementById('c-subg').getContext('2d'),{type:'bar',data:{labels:sorted.map(function(v){return v.pub_date.slice(5);}),datasets:[{data:data,backgroundColor:data.map(function(d){return d>=avg?'rgba(29,184,122,.8)':'rgba(232,84,42,.6)';}),borderWidth:0,barPercentage:.8},{data:Array(data.length).fill(avg),type:'line',borderColor:'rgba(255,255,255,.18)',borderWidth:1.5,borderDash:[4,3],pointRadius:0,fill:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{title:function(c){return sorted[c[0].dataIndex].name;},label:function(c){return c.datasetIndex===0?' +'+c.raw+' subs':' avg';}}}},scales:{x:{ticks:{color:M,font:{size:9},autoSkip:true,maxRotation:45},grid:{display:false}},y:{ticks:{color:M,font:{size:9}},grid:{color:GR},border:{display:false}}},onClick:function(e,el){if(el.length)openM(sorted[el[0].index].name);}});
+}
+
+function renderTopic(){
+  dc('tp');if(!PD)return;
+  var vs=getVs(),b=PD.bench[W];
+  var field=topM+'_'+W;
+  var raw=ga(vs,function(v){return v.topic;},function(v){return v[field];});
+  var e=Object.keys(raw).map(function(k){return[k,raw[k]];}).sort(function(a,b){return b[1]-a[1];});
+  var isP=topM==='ctr'||topM==='ret';
+  charts.tp=new Chart(document.getElementById('c-topic').getContext('2d'),{type:'bar',data:{labels:e.map(function(x){return x[0];}),datasets:[{data:e.map(function(x){return isP?+(x[1]*100).toFixed(2):Math.round(x[1]);}),backgroundColor:e.map(function(x){return(TC[x[0]]||'#7a7a8c')+'CC';}),borderWidth:0}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:function(c){return' '+c.raw+(isP?'%':' impr.');}}}},scales:{x:{ticks:{color:M,font:{size:9},callback:function(v){return isP?v+'%':(v/1000).toFixed(0)+'K';}},grid:{color:GR},border:{display:false}},y:{ticks:{color:M,font:{size:10}},grid:{display:false}}}}});
+}
+
+function renderFmt(vs,b){
+  dc('fmt');
+  var raw=ga(vs,function(v){return v.title_format;},function(v){return v['ctr_'+W];});
+  var e=Object.keys(raw).map(function(k){return[k,raw[k]];}).sort(function(a,b){return b[1]-a[1];});
+  charts.fmt=new Chart(document.getElementById('c-fmt').getContext('2d'),{type:'bar',data:{labels:e.map(function(x){return x[0];}),datasets:[{data:e.map(function(x){return+(x[1]*100).toFixed(2);}),backgroundColor:e.map(function(x){return x[1]>=(THRESH['ctr_'+W]||b.ctr)?'rgba(29,184,122,.8)':'rgba(232,84,42,.75)';}),borderWidth:0}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:function(c){return' '+c.raw.toFixed(1)+'% avg CTR';}}}},scales:{x:{ticks:{color:M,font:{size:9},callback:function(v){return v+'%';}},grid:{color:GR},border:{display:false}},y:{ticks:{color:M,font:{size:10}},grid:{display:false}}}}});
+}
+
+function renderScat(){
+  dc('scat');if(!PD)return;
+  var vs=getVs(),b=PD.bench[W];
+  var xk=(document.getElementById('scat-x')?document.getElementById('scat-x').value:'imp')+'_'+W;
+  var pts=vs.filter(function(v){return v['ctr_'+W]!=null&&v[xk]!=null;}).map(function(v){
+    var sc=perfScore(v,b).total;var c=sc>=75?'rgba(29,184,122,.8)':sc>=50?'rgba(74,158,232,.7)':sc>=25?'rgba(240,160,48,.7)':'rgba(232,84,42,.7)';
+    return{x:v[xk],y:+(v['ctr_'+W]*100).toFixed(2),n:v.name,c:c};
+  });
+  charts.scat=new Chart(document.getElementById('c-scat').getContext('2d'),{type:'scatter',data:{datasets:[{data:pts,backgroundColor:pts.map(function(p){return p.c;}),pointRadius:5,pointHoverRadius:8}]},options:{responsive:true,maintainAspectRatio:false,layout:{padding:8},plugins:{legend:{display:false},tooltip:{callbacks:{title:function(c){return c[0].raw.n.slice(0,44)+(c[0].raw.n.length>44?'...':'');},label:function(c){return(c.raw.x/1000).toFixed(1)+'K impr. | CTR: '+c.raw.y.toFixed(1)+'%';}}}},scales:{x:{ticks:{color:M,font:{size:9},callback:function(v){return(v/1000).toFixed(0)+'K';}},grid:{color:GR}},y:{title:{display:true,text:'CTR %',color:M,font:{size:9}},ticks:{color:M,font:{size:9},callback:function(v){return v+'%';}},grid:{color:GR}}},onClick:function(e,el){if(el.length)openM(pts[el[0].index].n);}});
+}
+
+function renderDurScat(vs){
+  dc('durs');
+  var pts=vs.filter(function(v){return v.vid_dur_s!=null&&v['ret_'+W]!=null;}).map(function(v){return{x:+(v.vid_dur_s/60).toFixed(1),y:+(v['ret_'+W]*100).toFixed(1),n:v.name,t:v.topic};});
+  if(!pts.length)return;
+  charts.durs=new Chart(document.getElementById('c-dur').getContext('2d'),{type:'scatter',data:{datasets:[{data:pts,backgroundColor:pts.map(function(p){return(TC[p.t]||'#7a7a8c')+'BB';}),pointRadius:5,pointHoverRadius:8}]},options:{responsive:true,maintainAspectRatio:false,layout:{padding:8},plugins:{legend:{display:false},tooltip:{callbacks:{title:function(c){return c[0].raw.n.slice(0,44)+(c[0].raw.n.length>44?'...':'');},label:function(c){return'Duration: '+c.raw.x+'min | Ret: '+c.raw.y+'%';}}}},scales:{x:{title:{display:true,text:'Duration (min)',color:M,font:{size:9}},ticks:{color:M,font:{size:9}},grid:{color:GR}},y:{title:{display:true,text:'Retention %',color:M,font:{size:9}},ticks:{color:M,font:{size:9},callback:function(v){return v+'%';}},grid:{color:GR}}},onClick:function(e,el){if(el.length)openM(pts[el[0].index].n);}});
+}
+
+function renderLeaders(vs){
+  function top5(arr,sF,fmt,c){
+    var s2=arr.filter(function(v){return sF(v)!=null;}).sort(function(a,b){return sF(b)-sF(a);}).slice(0,5);
+    var mx=s2.length?sF(s2[0]):1;
+    return s2.map(function(v){var val=sF(v),pct=mx>0?Math.round(val/mx*100):0;var sh=v.name.length>30?v.name.slice(0,30)+'...':v.name;return'<div class="lbrow" onclick="openM(\''+esc(v.name)+'\')"><div style="flex:1;min-width:0"><div class="lbnm" title="'+v.name+'">'+sh+'</div><div class="lbbar"><div class="lbfill" style="width:'+pct+'%;background:'+c+'"></div></div></div><span class="lbv" style="color:'+c+'">'+fmt(val)+'</span></div>';}).join('')||'<div style="font-size:9px;color:var(--muted);padding:4px 0">No data</div>';
+  }
+  document.getElementById('lb-nv-t').innerHTML=top5(vs,function(v){return v['nv_imp_'+W];},function(x){return(x/1000).toFixed(1)+'K';},'#4A9EE8');
+  document.getElementById('lb-nv-r').innerHTML=top5(vs,function(v){return v['imp_'+W]>0&&v['nv_imp_'+W]!=null?v['nv_imp_'+W]/v['imp_'+W]:null;},function(x){return(x*100).toFixed(0)+'%';},'#4A9EE8');
+  document.getElementById('lb-rv-t').innerHTML=top5(vs,function(v){return v['rv_imp_'+W];},function(x){return(x/1000).toFixed(1)+'K';},'#F0A030');
+  document.getElementById('lb-rv-r').innerHTML=top5(vs,function(v){return v['imp_'+W]>0&&v['rv_imp_'+W]!=null?v['rv_imp_'+W]/v['imp_'+W]:null;},function(x){return(x*100).toFixed(0)+'%';},'#F0A030');
+}
+
+function renderTiers(vs,b){
+  var byTier={};
+  vs.forEach(function(v){if(v.tier){if(!byTier[v.tier])byTier[v.tier]={tier:v.tier,videos:[],cats:{}};byTier[v.tier].videos.push(v);if(v.category){if(!byTier[v.tier].cats[v.category])byTier[v.tier].cats[v.category]=[];byTier[v.tier].cats[v.category].push(v);}}});
+  var tiers=Object.keys(byTier).sort();
+  var maxImp=Math.max.apply(null,tiers.map(function(t){var vs2=byTier[t].videos;var a=vs2.filter(function(v){return v['imp_'+W]!=null;});return a.length?a.reduce(function(s,v){return s+v['imp_'+W];},0)/a.length:0;}));
+  function agg(arr,f){var a=arr.filter(function(v){return v[f]!=null;});return a.length?a.reduce(function(s,v){return s+v[f];},0)/a.length:null;}
+  var html='<table style="width:100%;border-collapse:collapse;font-size:10px"><thead><tr style="border-bottom:0.5px solid var(--border)"><th style="font-size:8px;font-weight:400;color:var(--muted);padding:0 8px 7px;text-align:left;letter-spacing:.06em;text-transform:uppercase">Tier / Category</th><th style="font-size:8px;font-weight:400;color:var(--muted);padding:0 8px 7px;text-align:left">Videos</th><th style="font-size:8px;font-weight:400;color:var(--muted);padding:0 8px 7px;text-align:left">Avg CTR</th><th style="font-size:8px;font-weight:400;color:var(--muted);padding:0 8px 7px;text-align:left">Avg Impr.</th><th style="font-size:8px;font-weight:400;color:var(--muted);padding:0 8px 7px;text-align:left">Avg Ret.</th><th style="font-size:8px;font-weight:400;color:var(--muted);padding:0 8px 7px;text-align:left">NV Impr.</th></tr></thead><tbody>';
+  var tCls={'Tier 1':'t1b','Tier 2':'t2b','Tier 3':'t3b'};
+  tiers.forEach(function(t){
+    var row=byTier[t];var vs2=row.videos;
+    var ctr=agg(vs2,'ctr_'+W),imp=agg(vs2,'imp_'+W),ret=agg(vs2,'ret_'+W),nvi=agg(vs2,'nv_imp_'+W);
+    var cc=ctr>=(THRESH['ctr_'+W]||b.ctr)?'var(--teal)':'var(--coral)';
+    var ipct=maxImp>0?Math.round((imp||0)/maxImp*100):0;
+    html+='<tr style="border-bottom:0.5px solid var(--border);cursor:pointer" onclick="openTierModal(\''+t+'\')" onmouseover="this.style.background=\'rgba(255,255,255,.02)\'" onmouseout="this.style.background=\'\'">'+
+      '<td style="padding:7px 8px"><span class="'+(tCls[t]||'t1b')+'">'+t+'</span></td>'+
+      '<td style="padding:7px 8px;color:var(--muted);font-family:var(--mono)">'+vs2.length+'</td>'+
+      '<td style="padding:7px 8px"><span style="font-family:var(--mono);color:'+cc+'">'+(ctr!=null?(ctr*100).toFixed(1)+'%':'—')+'</span></td>'+
+      '<td style="padding:7px 8px;font-family:var(--mono);color:var(--muted)">'+(imp!=null?(imp/1000).toFixed(1)+'K':'—')+'<span class="pbar-bg" style="display:inline-block;margin-left:5px"><span class="pbar-fill" style="width:'+ipct+'%;background:var(--blue)"></span></span></td>'+
+      '<td style="padding:7px 8px;font-family:var(--mono);color:var(--muted)">'+(ret!=null?(ret*100).toFixed(0)+'%':'—')+'</td>'+
+      '<td style="padding:7px 8px;font-family:var(--mono);color:var(--muted)">'+(nvi!=null?(nvi/1000).toFixed(1)+'K':'—')+'</td>'+
+      '</tr>';
+    // Category rows
+    Object.keys(row.cats).sort().forEach(function(cat){
+      var cvs=row.cats[cat];
+      var cctr=agg(cvs,'ctr_'+W),cimp=agg(cvs,'imp_'+W),cret=agg(cvs,'ret_'+W),cnvi=agg(cvs,'nv_imp_'+W);
+      html+='<tr style="border-bottom:0.5px solid var(--border);cursor:pointer;background:rgba(255,255,255,.01)" onclick="openCatModal(\''+t+'\',\''+cat+'\')" onmouseover="this.style.background=\'rgba(255,255,255,.025)\'" onmouseout="this.style.background=\'rgba(255,255,255,.01)\'">'+
+        '<td style="padding:5px 8px 5px 22px;color:var(--dim);font-size:10px">↳ '+cat+'</td>'+
+        '<td style="padding:5px 8px;color:var(--dim);font-family:var(--mono);font-size:9px">'+cvs.length+'</td>'+
+        '<td style="padding:5px 8px;font-size:9px;font-family:var(--mono);color:var(--muted)">'+(cctr!=null?(cctr*100).toFixed(1)+'%':'—')+'</td>'+
+        '<td style="padding:5px 8px;font-size:9px;font-family:var(--mono);color:var(--muted)">'+(cimp!=null?(cimp/1000).toFixed(1)+'K':'—')+'</td>'+
+        '<td style="padding:5px 8px;font-size:9px;font-family:var(--mono);color:var(--muted)">'+(cret!=null?(cret*100).toFixed(0)+'%':'—')+'</td>'+
+        '<td style="padding:5px 8px;font-size:9px;font-family:var(--mono);color:var(--muted)">'+(cnvi!=null?(cnvi/1000).toFixed(1)+'K':'—')+'</td>'+
+        '</tr>';
+    });
+  });
+  document.getElementById('tier-tbl').innerHTML=html+'</tbody></table><div style="font-size:8px;color:var(--dim);margin-top:6px">↑ Click tier or category row to see videos</div>';
+}
+
+function openTierModal(tier){openGroupModal(tier,null);}
+function openCatModal(tier,cat){openGroupModal(tier,cat);}
+function openGroupModal(tier,cat){
+  if(!PD)return;
+  var vs=getVs(),b=PD.bench[W];
+  var filtered=vs.filter(function(v){return v.tier===tier&&(!cat||v.category===cat);}).sort(function(a,b){return(b['imp_'+W]||0)-(a['imp_'+W]||0);});
+  document.getElementById('mtitle').textContent=tier+(cat?' → '+cat:'');
+  document.getElementById('mmeta').innerHTML='<span>'+filtered.length+' videos</span><span style="color:var(--muted)">Click any for full details</span>';
+  document.getElementById('mbody').innerHTML=filtered.map(function(v){
+    var d=v,tc=TC[v.topic]||'#7a7a8c';
+    return'<div style="background:var(--bg3);border-radius:7px;padding:9px 11px;cursor:pointer;margin-bottom:5px" onclick="openM(\''+esc(v.name)+'\')">'+
+      '<div style="font-size:11px;font-weight:500;margin-bottom:4px">'+v.name+'</div>'+
+      '<div style="display:flex;gap:10px;flex-wrap:wrap;font-size:9px;color:var(--muted)">'+
+      '<span>Impr: <span style="font-family:var(--mono)">'+(d['imp_'+W]!=null?(d['imp_'+W]/1000).toFixed(1)+'K':'—')+'</span></span>'+
+      '<span>CTR: <span style="font-family:var(--mono);color:'+(d['ctr_'+W]>=(THRESH['ctr_'+W]||b.ctr)?'var(--teal)':'var(--coral)')+'">'+( d['ctr_'+W]!=null?(d['ctr_'+W]*100).toFixed(1)+'%':'—')+'</span></span>'+
+      '<span>Ret: <span style="font-family:var(--mono)">'+(d['ret_'+W]!=null?(d['ret_'+W]*100).toFixed(0)+'%':'—')+'</span></span>'+
+      '<span>NV%: <span style="font-family:var(--mono)">'+(d['imp_'+W]>0&&d['nv_imp_'+W]!=null?Math.round(d['nv_imp_'+W]/d['imp_'+W]*100)+'%':'—')+'</span></span>'+
+      (v.pub_date?'<span style="color:var(--dim)">'+v.pub_date+'</span>':'')+
+      '</div></div>';
+  }).join('');
+  document.getElementById('moverlay').classList.add('open');
+}
+
+function renderCadence(vs){
+  dc('cad');
+  var sorted=vs.filter(function(v){return v.pub_date;}).sort(function(a,b){return new Date(a.pub_date)-new Date(b.pub_date);});
+  if(sorted.length<2)return;
+  var gaps=[],labels=[];
+  for(var i=1;i<sorted.length;i++){gaps.push(Math.round((new Date(sorted[i].pub_date)-new Date(sorted[i-1].pub_date))/86400000));labels.push(sorted[i].pub_date.slice(5));}
+  charts.cad=new Chart(document.getElementById('c-cad').getContext('2d'),{type:'bar',data:{labels:labels,datasets:[{data:gaps,backgroundColor:gaps.map(function(g){return g>14?'rgba(232,84,42,.7)':g>7?'rgba(240,160,48,.7)':'rgba(29,184,122,.7)';}),borderWidth:0,barPercentage:.75},{data:Array(gaps.length).fill(7),type:'line',borderColor:'rgba(255,255,255,.15)',borderWidth:1.5,borderDash:[3,3],pointRadius:0,fill:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{title:function(c){return sorted[c[0].dataIndex+1]?sorted[c[0].dataIndex+1].name.slice(0,44):'';},label:function(c){return c.datasetIndex===0?' '+c.raw+' days':' 7d target';}}}},scales:{x:{ticks:{color:M,font:{size:9},autoSkip:true,maxRotation:45},grid:{display:false}},y:{ticks:{color:M,font:{size:9},callback:function(v){return v+'d';}},grid:{color:GR},border:{display:false}}}}});
+}
+
+function renderTable(vs,b){
+  var filtered=vs.filter(function(v){
+    if(FS.text&&!v.name.toLowerCase().includes(FS.text.toLowerCase()))return false;
+    if(FS.topic&&v.topic!==FS.topic)return false;
+    if(FS.format&&v.title_format!==FS.format)return false;
+    if(FS.tier&&v.tier!==FS.tier)return false;
+    if(FS.cat&&v.category!==FS.cat)return false;
+    return true;
+  });
+  document.getElementById('tbl-cnt').textContent=filtered.length+' of '+vs.length;
+  var w=W;
+  var fm={imp:'imp_'+w,views:'views_'+w,ctr:'ctr_'+w,ret:'ret_'+w,subs:'sub_'+w,nv:'nv_imp_'+w,rv:'rv_imp_'+w,nvctr:'nv_ctr_'+w,svr:'svr_'+w,snvr:'snvr_'+w,date:'pub_date',mom:null};
+  filtered=filtered.slice().sort(function(a,c){
+    var col=SS.col,dir=SS.dir,av,cv;
+    if(col==='score'){var sa=perfScore(a,b),sc2=perfScore(c,b);av=sa.total;cv=sc2.total;}
+    else if(col==='title'){av=a.name;cv=c.name;}
+    else if(col==='mom'){av=a.nv_imp_7d!=null&&a.nv_imp_24h>0?a.nv_imp_7d/a.nv_imp_24h:null;cv=c.nv_imp_7d!=null&&c.nv_imp_24h>0?c.nv_imp_7d/c.nv_imp_24h:null;}
+    else{av=a[fm[col]||'imp_'+w];cv=c[fm[col]||'imp_'+w];}
+    if(av==null)return 1;if(cv==null)return-1;
+    return dir==='desc'?(cv>av?1:cv<av?-1:0):(av>cv?1:av<cv?-1:0);
+  });
+
+  function th(l,c2,tip){var s=SS.col===c2;var arr=s?(SS.dir==='desc'?' ↓':' ↑'):'';return'<th class="'+(s?'sorted':'')+'" onclick="srt(\''+c2+'\')" title="'+(tip||'')+'">'+l+arr+'</th>';}
+  window.srt=function(col){SS.col===col?SS.dir=SS.dir==='desc'?'asc':'desc':(SS.col=col,SS.dir='desc');if(PD)renderTable(getVs(),PD.bench[W]);};
+
+  var rows=filtered.map(function(v,i){
+    var imp=v['imp_'+w],views=v['views_'+w],ctr=v['ctr_'+w],ret=v['ret_'+w],sub=v['sub_'+w];
+    var nvimp=v['nv_imp_'+w],rvimp=v['rv_imp_'+w],nvctr=v['nv_ctr_'+w];
+    var svr=v['svr_'+w],snvr=v['snvr_'+w];
+    var mom=v.nv_imp_7d!=null&&v.nv_imp_24h>0?(v.nv_imp_7d/v.nv_imp_24h):null;
+    var sc=perfScore(v,b);
+    var scHtml='<span class="cn">—</span>';
+    if(sc.total!=null){
+      var scC=sc.total>=75?'var(--teal)':sc.total>=50?'var(--blue)':sc.total>=25?'var(--amber)':'var(--coral)';
+      var scBg=sc.total>=75?'rgba(29,184,122,.1)':sc.total>=50?'rgba(74,158,232,.1)':sc.total>=25?'rgba(240,160,48,.1)':'rgba(232,84,42,.1)';
+      var tipHtml=sc.parts.map(function(p){return'<div class="score-tip-row"><span>'+p.k+'</span><span style="color:'+scC+'">'+p.sc+'/50</span></div>';}).join('');
+      scHtml='<div class="score-wrap"><span class="score-pip" style="background:'+scBg+';color:'+scC+'">'+sc.total+'</span><div class="score-tip">'+tipHtml+'</div></div>';
+    }
+    var tb=v.tier?'<span class="'+(v.tier==='Tier 1'?'t1b':v.tier==='Tier 2'?'t2b':'t3b')+'">'+v.tier.replace('Tier ','T')+'</span> ':'';
+    var nm=v.name,sh=nm.length>36?nm.slice(0,36)+'...':nm,tc=TC[v.topic]||'#7a7a8c';
+    return'<tr onclick="openM(\''+esc(nm)+'\')">'+
+      '<td class="cn" style="width:20px">'+(i+1)+'</td>'+
+      '<td title="'+nm.replace(/"/g,'&quot;')+'" style="max-width:180px">'+tb+sh+'</td>'+
+      '<td class="cn" style="font-size:9px">'+(v.pub_date||'—')+'</td>'+
+      '<td><span class="tbadge" style="background:'+tc+'22;color:'+tc+'">'+(v.topic||'—')+'</span></td>'+
+      '<td>'+(v.category?'<span style="font-size:9px;color:var(--muted)">'+v.category+'</span>':'')+'</td>'+
+      '<td>'+scHtml+'</td>'+
+      '<td class="mono '+tcls(imp,'imp_'+w)+'">'+(imp!=null?(imp/1000).toFixed(1)+'K':'—')+'</td>'+
+      '<td class="mono '+tcls(nvimp,'imp_'+w)+'">'+(nvimp!=null?(nvimp/1000).toFixed(1)+'K':'—')+'</td>'+
+      '<td class="mono '+tcls(rvimp,'imp_'+w)+'">'+(rvimp!=null?(rvimp/1000).toFixed(1)+'K':'—')+'</td>'+
+      '<td class="mono '+tcls(views,'views_'+w)+'">'+(views!=null?Math.round(views).toLocaleString():'—')+'</td>'+
+      '<td class="mono '+tcls(ctr,'ctr_'+w)+'" style="font-weight:600">'+(ctr!=null?(ctr*100).toFixed(1)+'%':'—')+'</td>'+
+      '<td class="mono '+tcls(nvctr,'nv_ctr_'+w)+'">'+(nvctr!=null?(nvctr*100).toFixed(1)+'%':'—')+'</td>'+
+      '<td class="mono '+tcls(ret,'ret_'+w)+'">'+(ret!=null?(ret*100).toFixed(0)+'%':'—')+'</td>'+
+      '<td class="mono cn">'+(sub!=null?'+'+Math.round(sub):'—')+'</td>'+
+      '<td class="mono cn">'+(svr!=null?(svr*100).toFixed(3)+'%':'—')+'</td>'+
+      '<td class="mono cn">'+(snvr!=null?(snvr*100).toFixed(3)+'%':'—')+'</td>'+
+      '<td class="mono '+(mom!=null?(mom>=2?'mom-pos':mom>=1?'cn':'mom-neg'):'cn')+'">'+(mom!=null?mom.toFixed(1)+'x':'—')+'</td>'+
+      '</tr>';
+  }).join('');
+
+  document.getElementById('tbl-wrap').innerHTML='<table class="dtbl"><thead><tr>'+
+    '<th>#</th>'+th('Title','title')+th('Date','date')+th('Topic','topic')+'<th>Category</th>'+th('Score','score','Hover for breakdown')+
+    th('Impr.','imp')+th('NV Impr.','nv')+th('RV Impr.','rv')+th('Views','views')+th('CTR','ctr')+th('NV CTR','nvctr')+th('Ret.','ret')+th('Subs','subs')+
+    th('Sub/View','svr')+th('Sub/NV','snvr')+th('Momentum','mom','NV 7D ÷ NV 24H — how fast new viewers grew. >2x = algorithmic pickup')+
+    '</tr></thead><tbody>'+rows+'</tbody></table>'+
+    '<div style="font-size:9px;color:var(--dim);padding:6px 0;display:flex;gap:12px"><span style="color:var(--teal)">■ Meets target</span><span style="color:var(--amber)">■ Within 15%</span><span style="color:var(--coral)">■ Below target</span></div>';
+}
+
+// MODAL
+function esc(s){return s.replace(/'/g,"\\'");}
+function openM(name){
+  if(!PD)return;
+  var v=PD.videos.find(function(x){return x.name===name;});if(!v)return;
+  var b=PD.bench[W];
+  var sc=perfScore(v,b);
+  var scC=sc.total!=null?(sc.total>=75?'var(--teal)':sc.total>=50?'var(--blue)':sc.total>=25?'var(--amber)':'var(--coral)'):'var(--muted)';
+  var tc=TC[v.topic]||'#7a7a8c';
+  document.getElementById('mtitle').textContent=v.name;
+  document.getElementById('mmeta').innerHTML=
+    (v.pub_date?'<span>📅 '+v.pub_date+'</span>':'')+
+    (v.topic?'<span style="background:'+tc+'22;color:'+tc+';padding:2px 6px;border-radius:3px">'+v.topic+'</span>':'')+
+    (v.title_format?'<span>'+v.title_format+'</span>':'')+
+    (v.hook?'<span>'+v.hook+'</span>':'')+
+    (v.tier?'<span class="'+(v.tier==='Tier 1'?'t1b':v.tier==='Tier 2'?'t2b':'t3b')+'">'+v.tier+'</span>':'')+
+    (v.category?'<span style="color:var(--muted)">'+v.category+'</span>':'')+
+    (sc.total!=null?'<span style="color:'+scC+';font-family:var(--mono)">Score: '+sc.total+'/100</span>':'')+
+    (v.vid_dur_s?'<span>'+Math.round(v.vid_dur_s/60)+'min</span>':'');
+
+  var body='';
+  ['24h','7d','28d'].forEach(function(s){
+    var suf='_'+s,bb=PD.bench[s];
+    var imp=v['imp'+suf],views=v['views'+suf],ctr=v['ctr'+suf],ret=v['ret'+suf],sub=v['sub'+suf],likes=v['likes'+suf];
+    var nv_imp=v['nv_imp'+suf],rv_imp=v['rv_imp'+suf],cv_imp=v['cv_imp'+suf];
+    var nv_ctr=v['nv_ctr'+suf],rv_ctr=v['rv_ctr'+suf];
+    var nv_avd=v['nv_avd'+suf],rv_avd=v['rv_avd'+suf];
+    var svr=v['svr'+suf],snvr=v['snvr'+suf];
+    var mom=v['nv_imp_7d']!=null&&v['nv_imp_24h']>0?v['nv_imp_7d']/v['nv_imp_24h']:null;
+    var t=THRESH;
+    function mc(lbl,val,tkey,fmt,tip){
+      var thresh=t[tkey]||bb[tkey.split('_')[0]];
+      var c=val!=null&&thresh>0?(val>=thresh?'var(--teal)':val>=thresh*0.85?'var(--amber)':'var(--coral)'):'var(--muted)';
+      var mult=val!=null&&thresh>0?' ('+(val/thresh).toFixed(2)+'x target)':'';
+      return'<div class="mcard" title="'+(tip||'')+mult+'"><div class="mcard-lbl">'+lbl+'</div><div class="mcard-val" style="color:'+c+'">'+(val!=null?fmt(val):'—')+'</div><div class="mcard-sub">'+mult+'</div></div>';
+    }
+    body+='<div class="msec">'+s.toUpperCase()+' window</div><div class="mgrid">'+
+      mc('Impressions',imp,'imp_'+s,function(x){return(x/1000).toFixed(1)+'K';},'How often thumbnail shown')+
+      mc('Views',views,'views_'+s,function(x){return Math.round(x).toLocaleString();},'Total plays')+
+      mc('CTR',ctr,'ctr_'+s,function(x){return(x*100).toFixed(1)+'%';},'Click-through rate')+
+      mc('NV CTR',nv_ctr,'nv_ctr_'+s,function(x){return(x*100).toFixed(1)+'%';},'New viewer CTR')+
+      mc('Retention',ret,'ret_'+s,function(x){return(x*100).toFixed(0)+'%';},'% of video watched')+
+      mc('Subs',sub,'sub_'+s,function(x){return'+'+Math.round(x);},'Subscriber gains')+
+      mc('NV Impr.',nv_imp,'imp_'+s,function(x){return(x/1000).toFixed(1)+'K';},'New viewer impressions')+
+      mc('RV Impr.',rv_imp,'imp_'+s,function(x){return(x/1000).toFixed(1)+'K';},'Returning viewer impressions')+
+      mc('NV AVD',nv_avd,'nv_avd_'+s,function(x){return(x/60).toFixed(1)+'min';},'New viewer avg watch time')+
+      mc('RV AVD',rv_avd,'rv_avd_'+s,function(x){return(x/60).toFixed(1)+'min';},'Returning viewer avg watch time')+
+      '<div class="mcard"><div class="mcard-lbl">Sub/View %</div><div class="mcard-val" style="color:var(--muted)">'+(svr!=null?(svr*100).toFixed(3)+'%':'—')+'</div></div>'+
+      '<div class="mcard"><div class="mcard-lbl">Sub/NV %</div><div class="mcard-val" style="color:var(--muted)">'+(snvr!=null?(snvr*100).toFixed(3)+'%':'—')+'</div></div>'+
+      '</div>';
+  });
+  // NV Momentum
+  var mom=v.nv_imp_7d!=null&&v.nv_imp_24h>0?v.nv_imp_7d/v.nv_imp_24h:null;
+  if(mom!=null){body+='<div class="msec">NV Momentum (7D ÷ 24H)</div><div style="font-size:13px;font-family:var(--mono);color:'+(mom>=2?'var(--teal)':mom>=1?'var(--muted)':'var(--coral)')+'">'+mom.toFixed(2)+'x </div><div style="font-size:10px;color:var(--muted);margin-top:4px">'+(mom>=3?'🚀 Strong algorithmic pickup — YouTube pushed this video':'')+(mom>=2&&mom<3?'📈 Good growth momentum':'')+(mom>=1&&mom<2?'→ Steady growth, no major spike':'')+(mom<1?'📉 New viewer growth slowed after 24H':'')+'</div>';}
+  // WHY analysis
+  var d=v;var issues=[],wins=[];var bW=PD.bench[W];
+  var tCtr=THRESH['ctr_'+W]||bW.ctr,tImp=THRESH['imp_'+W]||bW.imp,tRet=THRESH['ret_'+W]||bW.ret;
+  if(d['ctr_'+W]!=null){if(d['ctr_'+W]<tCtr*0.85)issues.push('CTR '+(d['ctr_'+W]*100).toFixed(1)+'% is below your '+(tCtr*100).toFixed(1)+'% target — packaging (title/thumbnail) needs work');else if(d['ctr_'+W]>=tCtr)wins.push('CTR meets your target — packaging is working');}
+  if(d['ret_'+W]!=null){if(d['ret_'+W]<tRet*0.85)issues.push('Retention below target — content hook or pacing may need improvement');else if(d['ret_'+W]>=tRet)wins.push('Retention meets target — content quality is strong');}
+  if(d['nv_ctr_'+W]!=null&&d['ctr_'+W]!=null){var gap=d['ctr_'+W]-d['nv_ctr_'+W];if(gap>0.025)issues.push('NV CTR much lower than Total CTR — title/thumbnail works for fans but not cold audiences. Growth ceiling risk.');else wins.push('NV CTR close to Total CTR — packaging works for cold audiences too');}
+  if(d['nv_imp_'+W]!=null&&d['imp_'+W]!=null&&d['imp_'+W]>0){var nvShare=d['nv_imp_'+W]/d['imp_'+W];if(nvShare>0.5)wins.push('High new viewer share ('+Math.round(nvShare*100)+'%) — strong discovery by new audiences');else if(nvShare<0.25)issues.push('Low new viewer share ('+Math.round(nvShare*100)+'%) — mainly reaching existing audience');}
+  if(d['imp_'+W]!=null&&d['imp_'+W]<tImp&&d['ctr_'+W]!=null&&d['ctr_'+W]>=tCtr)issues.push('Good CTR but low impressions — YouTube is not distributing this video widely. Could benefit from promotion.');
+  if(wins.length||issues.length){
+    body+='<div class="msec">Why is this video performing like this?</div>';
+    wins.forEach(function(w2){body+='<div class="why-row"><span style="color:var(--teal)">✓</span><span style="color:var(--muted);line-height:1.5">'+w2+'</span></div>';});
+    issues.forEach(function(w2){body+='<div class="why-row"><span style="color:var(--coral)">⚠</span><span style="color:var(--muted);line-height:1.5">'+w2+'</span></div>';});
+  }
+  document.getElementById('mbody').innerHTML=body;
+  document.getElementById('moverlay').classList.add('open');
+}
+function closeM(){document.getElementById('moverlay').classList.remove('open');}
+
+// SETTINGS
+function openSettings(){
+  var html='';
+  var sections=[
+    {title:'CTR targets',keys:['ctr_24h','ctr_7d','ctr_28d','nv_ctr_24h','nv_ctr_7d']},
+    {title:'Impression targets',keys:['imp_24h','imp_7d','imp_28d']},
+    {title:'Views targets',keys:['views_24h','views_7d','views_28d']},
+    {title:'Retention targets',keys:['ret_24h','ret_7d','ret_28d']},
+  ];
+  sections.forEach(function(sec){
+    html+='<div class="thresh-section"><div class="thresh-title">'+sec.title+'</div>';
+    sec.keys.forEach(function(key){
+      var def=THRESH_DEFS.find(function(d){return d.key===key;});if(!def)return;
+      var cur=THRESH[key]!=null?THRESH[key]:0;
+      var avg=CHAN_AVG[key]||0;
+      var disp=(def.scale===100?(cur*100).toFixed(1):(Math.round(cur))).toString();
+      var avgDisp=def.scale===100?(avg*100).toFixed(1):Math.round(avg);
+      html+='<div class="thresh-row">'+
+        '<div><div class="thresh-lbl">'+def.lbl+'</div><div class="thresh-desc">'+def.tip+'</div></div>'+
+        '<input class="thresh-input" type="number" id="t_'+key+'" value="'+disp+'" step="'+(def.scale===100?'0.1':'100')+'">'+
+        '<span class="thresh-unit">'+def.unit+'</span>'+
+        '<span class="thresh-avg">avg: '+avgDisp+''+def.unit+'</span>'+
+        '</div>';
+    });
+    html+='</div>';
+  });
+  document.getElementById('thresh-form').innerHTML=html;
+  document.getElementById('settings-modal').classList.add('open');
+}
+function closeSettings(){document.getElementById('settings-modal').classList.remove('open');}
+function saveThresholds(){
+  THRESH_DEFS.forEach(function(def){
+    var el=document.getElementById('t_'+def.key);if(!el)return;
+    var v=parseFloat(el.value);if(isNaN(v))return;
+    THRESH[def.key]=def.scale===100?v/100:v;
+  });
+  localStorage.setItem('geoff_thresh',JSON.stringify(THRESH));
+  closeSettings();
+  if(PD)renderAll();
+}
+function resetThresholds(){
+  resetThreshToAvg();
+  localStorage.setItem('geoff_thresh',JSON.stringify(THRESH));
+  closeSettings();
+  if(PD)renderAll();
+}
+
+function exportCSV(){
+  if(!PD)return;
+  var vs=getVs(),w=W;
+  var H=['Name','Date','Tier','Category','Topic','Format','Hook','Score','Impressions','NV_Impr','RV_Impr','Views','CTR','NV_CTR','Retention','Subs','Sub_View_Ratio','Sub_NV_Ratio','NV_Momentum','Duration_min'];
+  var rows=vs.map(function(v){
+    var sc=perfScore(v,PD.bench[w]).total;
+    var mom=v.nv_imp_7d!=null&&v.nv_imp_24h>0?v.nv_imp_7d/v.nv_imp_24h:null;
+    return['"'+v.name.replace(/"/g,'""')+'"',v.pub_date||'',v.tier||'',v.category||'',v.topic||'',v.title_format||'',v.hook||'',sc||'',
+      v['imp_'+w]||'',v['nv_imp_'+w]||'',v['rv_imp_'+w]||'',v['views_'+w]||'',
+      v['ctr_'+w]!=null?(v['ctr_'+w]*100).toFixed(2):'',v['nv_ctr_'+w]!=null?(v['nv_ctr_'+w]*100).toFixed(2):'',
+      v['ret_'+w]!=null?(v['ret_'+w]*100).toFixed(1):'',v['sub_'+w]||'',
+      v['svr_'+w]!=null?(v['svr_'+w]*100).toFixed(4):'',v['snvr_'+w]!=null?(v['snvr_'+w]*100).toFixed(4):'',
+      mom!=null?mom.toFixed(3):'',v.vid_dur_s!=null?Math.round(v.vid_dur_s/60):''].join(',');
+  });
+  var csv=[H.join(',')].concat(rows).join('\n');
+  var a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);a.download='geoff_analytics_'+w+'_'+new Date().toISOString().slice(0,10)+'.csv';a.click();
+}
+</script>
+</body></html>
