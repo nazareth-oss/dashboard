@@ -7,1243 +7,645 @@
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --bg:#0a0a0d;--bg2:#13131a;--bg3:#1c1c26;--bg4:#252532;
-  --text:#f0f0f5;--muted:#7a7a8c;--dim:#4a4a5a;
-  --border:rgba(255,255,255,.07);--border2:rgba(255,255,255,.12);
+  --bg:#09090c;--bg2:#111116;--bg3:#1a1a22;--bg4:#22222c;
+  --text:#f0f0f6;--muted:#7a7a8c;--dim:#44445a;
+  --border:rgba(255,255,255,.06);--border2:rgba(255,255,255,.11);
   --teal:#1DB87A;--coral:#E8542A;--amber:#F0A030;--blue:#4A9EE8;
-  --purple:#8B80E8;--pink:#E060A0;--green:#2ECC71;--red:#E74C3C;
+  --purple:#8B80E8;--pink:#E060A0;
   --mono:'Courier New',monospace;
-  --radius:8px;--radius-lg:12px;
+  --sidebar:200px;
 }
 body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh;font-size:13px}
-a{color:var(--blue)}
 ::-webkit-scrollbar{width:4px;height:4px}
-::-webkit-scrollbar-track{background:var(--bg2)}
+::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:2px}
 
-/* SETUP SCREEN */
-#setup-screen{display:flex;min-height:100vh;align-items:center;justify-content:center;padding:40px 20px}
-#setup-screen.hide{display:none}
-.setup-card{background:var(--bg2);border:0.5px solid var(--border2);border-radius:var(--radius-lg);padding:36px;max-width:540px;width:100%}
-.setup-card h2{font-size:20px;font-weight:600;margin-bottom:6px}
-.setup-sub{color:var(--muted);font-size:13px;line-height:1.6;margin-bottom:24px}
-.setup-step{display:flex;gap:14px;padding:14px 0;border-bottom:0.5px solid var(--border)}
-.setup-step:last-of-type{border-bottom:none;margin-bottom:20px}
-.step-n{width:24px;height:24px;min-width:24px;border-radius:50%;background:var(--bg3);border:0.5px solid var(--border2);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:var(--muted);margin-top:2px}
-.step-b strong{font-size:13px;font-weight:500;display:block;margin-bottom:3px}
-.step-b p{font-size:12px;color:var(--muted);line-height:1.5}
-.step-b code{background:var(--bg3);padding:1px 6px;border-radius:4px;font-family:var(--mono);font-size:11px;color:#88bbee}
-.form-label{font-size:11px;color:var(--muted);display:block;margin-bottom:5px;text-transform:uppercase;letter-spacing:.05em}
-.form-input{width:100%;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--radius);padding:10px 13px;color:var(--text);font-size:13px;outline:none;transition:border-color .15s}
-.form-input:focus{border-color:var(--blue)}
-.form-hint{font-size:10px;color:var(--muted);margin:4px 0 14px}
-.err-msg{color:var(--coral);font-size:12px;margin-top:8px;display:none}
+/* SETUP */
+#setup{display:flex;min-height:100vh;align-items:center;justify-content:center;padding:40px 20px}
+#setup.hide{display:none}
+.scard{background:var(--bg2);border:0.5px solid var(--border2);border-radius:14px;padding:32px;max-width:520px;width:100%}
+.scard h2{font-size:19px;font-weight:600;margin-bottom:6px}
+.scard p{color:var(--muted);font-size:12px;line-height:1.6;margin-bottom:20px}
+.sstep{display:flex;gap:12px;padding:12px 0;border-bottom:0.5px solid var(--border)}
+.sstep:last-of-type{border-bottom:none;margin-bottom:18px}
+.sn{width:22px;height:22px;min-width:22px;border-radius:50%;background:var(--bg3);border:0.5px solid var(--border2);display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--muted)}
+.sb strong{font-size:12px;font-weight:500;display:block;margin-bottom:2px}
+.sb p{font-size:11px;color:var(--muted);line-height:1.5}
+.sb code{background:var(--bg3);padding:1px 5px;border-radius:3px;font-family:var(--mono);font-size:10px;color:#88bbee}
+.flabel{font-size:10px;color:var(--muted);display:block;margin-bottom:4px;letter-spacing:.05em;text-transform:uppercase}
+.finput{width:100%;background:var(--bg3);border:0.5px solid var(--border2);border-radius:7px;padding:9px 12px;color:var(--text);font-size:12px;outline:none}
+.finput:focus{border-color:var(--blue)}
+.fhint{font-size:10px;color:var(--muted);margin:3px 0 12px}
+.ferr{color:var(--coral);font-size:11px;margin-top:6px;display:none}
 
 /* BUTTONS */
-.btn{display:inline-flex;align-items:center;gap:6px;border:none;border-radius:var(--radius);padding:9px 18px;font-size:12px;font-weight:500;cursor:pointer;transition:all .15s}
-.btn-primary{background:var(--blue);color:#fff}.btn-primary:hover{opacity:.88}
-.btn-ghost{background:var(--bg3);color:var(--text);border:0.5px solid var(--border2)}.btn-ghost:hover{background:var(--bg4)}
-.btn-sm{padding:5px 11px;font-size:11px;border-radius:6px}
-.btn-xs{padding:3px 8px;font-size:10px;border-radius:5px}
-.btn-icon{padding:7px 10px;font-size:13px}
-.btn-danger{background:rgba(231,76,60,.15);color:var(--red);border:0.5px solid rgba(231,76,60,.3)}.btn-danger:hover{background:rgba(231,76,60,.25)}
-.btn-success{background:rgba(29,184,122,.15);color:var(--teal);border:0.5px solid rgba(29,184,122,.3)}
+.btn{display:inline-flex;align-items:center;gap:5px;border:none;border-radius:7px;padding:8px 16px;font-size:11px;font-weight:500;cursor:pointer;transition:all .13s}
+.btn-p{background:var(--blue);color:#fff}.btn-p:hover{opacity:.88}
+.btn-g{background:var(--bg3);color:var(--text);border:0.5px solid var(--border2)}.btn-g:hover{background:var(--bg4)}
+.btn-xs{padding:3px 9px;font-size:10px;border-radius:5px}
+.btn-sm{padding:5px 11px;font-size:10px;border-radius:6px}
+.btn-icon{padding:6px 9px}
 
-/* MAIN DASHBOARD */
-#dash{display:none;flex-direction:column;min-height:100vh}
-#dash.show{display:flex}
+/* LAYOUT */
+#app{display:none}
+#app.show{display:flex;min-height:100vh}
 
-/* HEADER */
-.header{background:var(--bg2);border-bottom:0.5px solid var(--border);padding:0 20px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;min-height:54px;position:sticky;top:0;z-index:100}
-.header-left{display:flex;align-items:center;gap:14px}
-.logo{font-size:15px;font-weight:700;letter-spacing:-.01em;color:var(--text)}
-.logo span{color:var(--blue)}
-.header-tag{font-size:10px;color:var(--muted);background:var(--bg3);padding:2px 8px;border-radius:10px}
-.header-right{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+/* SIDEBAR */
+.sidebar{width:var(--sidebar);min-width:var(--sidebar);background:var(--bg2);border-right:0.5px solid var(--border);display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:200;overflow-y:auto}
+.sidebar-logo{padding:14px 14px 10px;border-bottom:0.5px solid var(--border)}
+.sidebar-logo .logo{font-size:14px;font-weight:700;color:var(--text)}
+.sidebar-logo .logo span{color:var(--blue)}
+.sidebar-logo .sync{font-size:9px;color:var(--muted);margin-top:2px}
+.sidebar-nav{flex:1;padding:8px 0}
+.nav-section{font-size:8px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);padding:10px 14px 4px}
+.nav-item{display:flex;align-items:center;gap:7px;padding:6px 14px;font-size:11px;color:var(--muted);cursor:pointer;transition:all .12s;border-left:2px solid transparent;text-decoration:none}
+.nav-item:hover{color:var(--text);background:var(--bg3)}
+.nav-item.active{color:var(--blue);border-left-color:var(--blue);background:rgba(74,158,232,.06)}
+.nav-icon{font-size:12px;width:14px;text-align:center;flex-shrink:0}
+.sidebar-bottom{padding:10px 12px;border-top:0.5px solid var(--border);display:flex;flex-direction:column;gap:5px}
 
-/* WIN TOGGLE */
-.win-group{display:flex;background:var(--bg3);border-radius:6px;padding:2px;gap:1px}
-.win-btn{background:none;border:none;padding:4px 12px;font-size:11px;font-weight:500;border-radius:5px;cursor:pointer;color:var(--muted);transition:all .12s}
+/* MAIN */
+.main{margin-left:var(--sidebar);flex:1;display:flex;flex-direction:column;min-width:0}
+
+/* TOPBAR */
+.topbar{background:var(--bg2);border-bottom:0.5px solid var(--border);padding:0 16px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;min-height:48px;position:sticky;top:0;z-index:100}
+.topbar-l{display:flex;align-items:center;gap:10px}
+.topbar-r{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.win-g{display:flex;background:var(--bg3);border-radius:6px;padding:2px;gap:1px}
+.win-btn{background:none;border:none;padding:4px 11px;font-size:10px;font-weight:500;border-radius:5px;cursor:pointer;color:var(--muted);transition:all .12s}
 .win-btn.active{background:var(--bg4);color:var(--text);border:0.5px solid var(--border2)}
+.msel{background:var(--bg3);border:0.5px solid var(--border2);border-radius:6px;padding:4px 9px;color:var(--text);font-size:10px;outline:none;cursor:pointer}
+.pill-wrap{display:flex;gap:4px;flex-wrap:wrap;align-items:center}
+.apill{display:inline-flex;align-items:center;gap:3px;background:rgba(74,158,232,.12);color:var(--blue);border:0.5px solid rgba(74,158,232,.25);border-radius:8px;font-size:9px;padding:2px 7px}
+.apill button{background:none;border:none;color:var(--blue);cursor:pointer;font-size:10px;line-height:1;padding:0}
 
-/* METRIC TOGGLE */
-.metric-select{background:var(--bg3);border:0.5px solid var(--border2);border-radius:6px;padding:5px 10px;color:var(--text);font-size:11px;outline:none;cursor:pointer}
+/* ALERTS */
+.alerts{display:none;background:rgba(240,160,48,.07);border-bottom:0.5px solid rgba(240,160,48,.18);padding:6px 16px;gap:14px;flex-wrap:wrap;align-items:center}
+.alerts.show{display:flex}
+.alert-i{font-size:10px;display:flex;align-items:center;gap:4px}
+.adot{width:5px;height:5px;border-radius:50%;background:var(--amber);flex-shrink:0}
+.adot.r{background:var(--coral)}
 
-/* ALERTS BAR */
-.alerts-bar{display:none;background:rgba(240,160,48,.08);border-bottom:0.5px solid rgba(240,160,48,.2);padding:7px 20px;gap:16px;flex-wrap:wrap;align-items:center}
-.alerts-bar.show{display:flex}
-.alert-item{font-size:11px;display:flex;align-items:center;gap:5px}
-.alert-dot{width:6px;height:6px;border-radius:50%;background:var(--amber)}
-.alert-dot.red{background:var(--coral)}
+/* BODY */
+.body{padding:14px 16px;display:flex;flex-direction:column;gap:12px}
 
-/* CONTENT AREA */
-.dash-body{padding:16px 18px;display:flex;flex-direction:column;gap:12px}
+/* SECTION */
+.sec-label{font-size:8px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.sec-label::after{content:'';flex:1;height:0.5px;background:var(--border)}
 
-/* SECTION LABEL */
-.section-label{font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);margin-bottom:6px;display:flex;align-items:center;gap:8px}
-.section-label::after{content:'';flex:1;height:0.5px;background:var(--border)}
+/* WEEKLY SUMMARY */
+.weekly-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.wcard{background:var(--bg2);border:0.5px solid var(--border);border-radius:10px;padding:10px 12px}
+.wcard-lbl{font-size:9px;color:var(--muted);margin-bottom:3px}
+.wcard-val{font-size:18px;font-weight:600;font-family:var(--mono)}
+.wcard-delta{font-size:10px;margin-top:2px}
 
-/* GRID LAYOUTS */
-.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
-.grid-4{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px}
-.grid-6{display:grid;grid-template-columns:repeat(6,1fr);gap:10px}
-.grid-21{display:grid;grid-template-columns:2fr 1fr;gap:12px}
-.grid-12{display:grid;grid-template-columns:1fr 2fr;gap:12px}
-.grid-32{display:grid;grid-template-columns:3fr 2fr;gap:12px}
+/* BEST OF */
+.best-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.bcard{background:var(--bg2);border:0.5px solid var(--border);border-radius:10px;padding:10px 12px;cursor:pointer;transition:border-color .13s;border-left:3px solid transparent}
+.bcard:hover{border-color:var(--border2)}
+.bcard-lbl{font-size:9px;color:var(--muted);margin-bottom:3px}
+.bcard-val{font-size:16px;font-weight:600;font-family:var(--mono);margin-bottom:2px}
+.bcard-nm{font-size:9px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
-/* PANELS */
-.panel{background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--radius-lg);overflow:hidden}
-.panel-header{padding:12px 14px 0;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:10px}
-.panel-title{font-size:10px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);display:flex;align-items:center;gap:6px}
-.panel-title .why-btn{font-size:8px;color:var(--dim);background:var(--bg3);border:none;border-radius:3px;padding:1px 5px;cursor:pointer;transition:color .12s}
-.panel-title .why-btn:hover{color:var(--blue)}
-.panel-body{padding:0 14px 14px}
+/* KPI */
+.kpi-grid{display:grid;gap:8px}
+.kpicard{background:var(--bg2);border:0.5px solid var(--border);border-radius:10px;padding:10px 12px;cursor:help;position:relative}
+.kpicard:hover .kpi-tip{display:block}
+.kpi-lbl{font-size:9px;color:var(--muted);margin-bottom:4px;display:flex;align-items:center;gap:4px}
+.kpi-lbl .q{font-size:8px;color:var(--dim)}
+.kpi-val{font-size:19px;font-weight:600;font-family:var(--mono)}
+.kpi-d{font-size:9px;margin-left:4px}
+.kpi-tip{display:none;position:absolute;bottom:calc(100% + 6px);left:0;background:var(--bg4);border:0.5px solid var(--border2);border-radius:7px;padding:8px 10px;font-size:10px;color:var(--muted);line-height:1.5;z-index:50;width:220px;pointer-events:none}
 
-/* KPI CARDS */
-.kpi-card{background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--radius-lg);padding:13px 15px;cursor:pointer;transition:border-color .15s}
-.kpi-card:hover{border-color:var(--border2)}
-.kpi-card.active{border-color:var(--blue)}
-.kpi-label{font-size:9px;color:var(--muted);letter-spacing:.05em;text-transform:uppercase;margin-bottom:5px;display:flex;align-items:center;justify-content:space-between}
-.kpi-value{font-size:22px;font-weight:600;font-family:var(--mono);line-height:1}
-.kpi-delta{font-size:10px;margin-top:4px;display:flex;align-items:center;gap:4px}
-.kpi-spark{height:28px;margin-top:6px;opacity:.6}
-
-/* TREND STRIP */
-.trend-strip{background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--radius);padding:8px 14px;display:flex;gap:20px;flex-wrap:wrap;align-items:center}
-.trend-lbl{font-size:9px;color:var(--dim);letter-spacing:.07em;text-transform:uppercase}
-.trend-item{display:flex;align-items:center;gap:5px;font-size:11px;cursor:help}
+/* TREND */
+.trend{background:var(--bg2);border:0.5px solid var(--border);border-radius:9px;padding:8px 12px;display:flex;gap:16px;flex-wrap:wrap;align-items:center}
+.tlbl{font-size:8px;color:var(--dim);letter-spacing:.07em;text-transform:uppercase}
+.ti{display:flex;align-items:center;gap:4px;font-size:10px;cursor:help}
 .tnm{color:var(--muted)}
 .up{color:var(--teal)}.dn{color:var(--coral)}.flat{color:var(--muted)}
 
-/* DONUT PANELS */
-.donut-wrap{display:flex;align-items:center;gap:16px}
-.donut-chart-wrap{position:relative;width:140px;height:140px;flex-shrink:0}
-.donut-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none}
-.donut-center-val{font-size:18px;font-weight:600;font-family:var(--mono)}
-.donut-center-lbl{font-size:9px;color:var(--muted)}
-.donut-legend{flex:1}
-.donut-seg{display:flex;align-items:center;gap:8px;padding:5px 8px;border-radius:6px;cursor:pointer;transition:background .12s;margin-bottom:3px}
-.donut-seg:hover,.donut-seg.active{background:var(--bg3)}
-.donut-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
-.donut-seg-name{font-size:11px;flex:1}
-.donut-seg-val{font-size:11px;font-family:var(--mono);color:var(--muted)}
-.donut-seg-pct{font-size:9px;color:var(--dim)}
+/* DONUT */
+.donut-wrap{display:flex;align-items:center;gap:14px}
+.dnut-c{position:relative;width:130px;height:130px;flex-shrink:0}
+.dnut-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none}
+.dnut-cv{font-size:16px;font-weight:600;font-family:var(--mono)}
+.dnut-cl{font-size:8px;color:var(--muted)}
+.dleg{flex:1}
+.dseg{display:flex;align-items:center;gap:7px;padding:4px 7px;border-radius:5px;cursor:pointer;transition:background .12s;margin-bottom:2px}
+.dseg:hover,.dseg.on{background:var(--bg3)}
+.ddot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.dseg-nm{font-size:10px;flex:1}
+.dseg-v{font-size:10px;font-family:var(--mono);color:var(--muted)}
+.dseg-p{font-size:8px;color:var(--dim);margin-left:3px}
 
-/* BEST-OF CARDS */
-.best-card{background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--radius-lg);padding:11px 13px;cursor:pointer;transition:all .15s;border-left:3px solid transparent}
-.best-card:hover{border-color:var(--border2);border-left-color:inherit}
-.best-lbl{font-size:9px;color:var(--muted);margin-bottom:3px}
-.best-val{font-size:16px;font-weight:600;font-family:var(--mono);margin-bottom:2px}
-.best-nm{font-size:9px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* DIAGNOSTIC PANEL */
+.diag-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.diag-card{background:var(--bg2);border:0.5px solid var(--border);border-radius:9px;padding:11px 13px;cursor:pointer;transition:border-color .13s}
+.diag-card:hover{border-color:var(--border2)}
+.diag-icon{font-size:16px;margin-bottom:5px}
+.diag-title{font-size:11px;font-weight:500;margin-bottom:3px}
+.diag-desc{font-size:10px;color:var(--muted);line-height:1.5;margin-bottom:6px}
+.diag-count{font-size:18px;font-weight:700;font-family:var(--mono)}
 
-/* CHART CONTAINERS */
-.chart-container{position:relative;width:100%}
+/* PANELS */
+.panel{background:var(--bg2);border:0.5px solid var(--border);border-radius:10px;overflow:hidden}
+.ph{padding:11px 13px 0;display:flex;align-items:center;justify-content:space-between;gap:7px;flex-wrap:wrap;margin-bottom:9px}
+.pt{font-size:9px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);display:flex;align-items:center;gap:5px}
+.why{font-size:8px;color:var(--dim);background:var(--bg3);border:none;border-radius:3px;padding:1px 5px;cursor:pointer}
+.why:hover{color:var(--blue)}
+.pb{padding:0 13px 13px}
+.wp{display:none;background:var(--bg3);border-radius:6px;padding:8px 10px;font-size:10px;color:var(--muted);line-height:1.5;margin-top:5px}
+.wp.on{display:block}
+.cc{position:relative}
 
-/* SCATTER COLORS */
-.up{color:var(--teal)}.dn{color:var(--coral)}
+/* LEADERBOARD */
+.lbrow{display:flex;align-items:center;gap:7px;padding:5px 0;border-bottom:0.5px solid var(--border);cursor:pointer;transition:background .1s}
+.lbrow:last-child{border-bottom:none}
+.lbrow:hover{background:rgba(255,255,255,.02)}
+.lbnm{font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1}
+.lbv{font-size:10px;font-family:var(--mono);white-space:nowrap}
+.lbbar{height:3px;background:var(--bg3);border-radius:2px;margin-top:2px;overflow:hidden}
+.lbfill{height:100%;border-radius:2px}
 
 /* TABLE */
-.tbl-wrap{overflow-x:auto}
-.data-table{width:100%;border-collapse:collapse;font-size:11px}
-.data-table th{font-size:9px;font-weight:400;color:var(--muted);letter-spacing:.07em;text-transform:uppercase;padding:0 8px 8px;text-align:left;border-bottom:0.5px solid var(--border);cursor:pointer;white-space:nowrap;user-select:none;position:sticky;top:0;background:var(--bg2)}
-.data-table th:hover{color:var(--text)}
-.data-table th.sorted{color:var(--blue)}
-.data-table tbody tr{border-bottom:0.5px solid var(--border);cursor:pointer;transition:background .1s}
-.data-table tbody tr:hover{background:rgba(255,255,255,.03)}
-.data-table td{padding:7px 8px;white-space:nowrap}
+.filter-row{display:flex;gap:6px;flex-wrap:wrap;align-items:center;padding:9px 13px;border-bottom:0.5px solid var(--border)}
+.filter-row input{background:var(--bg3);border:0.5px solid var(--border2);border-radius:6px;padding:5px 9px;color:var(--text);font-size:10px;outline:none;width:140px}
+.filter-row input:focus{border-color:var(--blue)}
+.filter-row select{background:var(--bg3);border:0.5px solid var(--border2);border-radius:6px;padding:5px 9px;color:var(--text);font-size:10px;outline:none;cursor:pointer}
+.fcnt{font-size:9px;color:var(--muted);margin-left:auto}
+.tbl-wrap{overflow-x:auto;max-height:460px;overflow-y:auto}
+.dtbl{width:100%;border-collapse:collapse;font-size:10px}
+.dtbl th{font-size:8px;font-weight:400;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;padding:0 7px 7px;text-align:left;border-bottom:0.5px solid var(--border);cursor:pointer;white-space:nowrap;user-select:none;position:sticky;top:0;background:var(--bg2)}
+.dtbl th:hover{color:var(--text)}
+.dtbl th.sorted{color:var(--blue)}
+.dtbl tbody tr{border-bottom:0.5px solid var(--border);cursor:pointer}
+.dtbl tbody tr:hover{background:rgba(255,255,255,.025)}
+.dtbl td{padding:6px 7px;white-space:nowrap}
 .cg{color:var(--teal)}.cy{color:var(--amber)}.cr{color:var(--coral)}.cn{color:var(--muted)}
-.tbadge{font-size:9px;padding:2px 6px;border-radius:4px;white-space:nowrap}
-.score-pill{font-size:9px;padding:2px 8px;border-radius:10px;font-family:var(--mono);font-weight:600}
-.tier-1{background:rgba(29,184,122,.12);color:var(--teal);font-size:8px;padding:1px 4px;border-radius:3px}
-.tier-2{background:rgba(74,158,232,.12);color:var(--blue);font-size:8px;padding:1px 4px;border-radius:3px}
-.tier-3{background:rgba(139,128,232,.12);color:var(--purple);font-size:8px;padding:1px 4px;border-radius:3px}
+.tbadge{font-size:8px;padding:2px 5px;border-radius:3px;white-space:nowrap}
+/* Score pill with tooltip */
+.score-wrap{position:relative;display:inline-block}
+.score-wrap:hover .score-tip{display:block}
+.score-pip{font-size:9px;padding:2px 7px;border-radius:8px;font-family:var(--mono);font-weight:600;cursor:help}
+.score-tip{display:none;position:absolute;bottom:calc(100% + 5px);left:50%;transform:translateX(-50%);background:var(--bg4);border:0.5px solid var(--border2);border-radius:7px;padding:8px 10px;font-size:9px;color:var(--muted);line-height:1.7;z-index:50;min-width:160px;pointer-events:none}
+.score-tip-row{display:flex;justify-content:space-between;gap:12px}
+.t1b{background:rgba(29,184,122,.1);color:var(--teal);font-size:8px;padding:1px 4px;border-radius:3px}
+.t2b{background:rgba(74,158,232,.1);color:var(--blue);font-size:8px;padding:1px 4px;border-radius:3px}
+.t3b{background:rgba(139,128,232,.1);color:var(--purple);font-size:8px;padding:1px 4px;border-radius:3px}
 
 /* PBAR */
-.pbar-row{display:flex;align-items:center;gap:6px}
-.pbar-bg{height:5px;border-radius:3px;background:var(--bg3);overflow:hidden;min-width:50px;flex:1}
-.pbar-fill{height:100%;border-radius:3px;transition:width .4s}
+.pbar-bg{height:4px;border-radius:2px;background:var(--bg3);overflow:hidden;display:inline-block;min-width:40px}
+.pbar-fill{height:100%;border-radius:2px}
 
 /* MODAL */
-#modal-overlay{display:none;position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.75);backdrop-filter:blur(3px);align-items:center;justify-content:center;padding:20px}
-#modal-overlay.open{display:flex}
-.modal-box{background:var(--bg2);border:0.5px solid var(--border2);border-radius:var(--radius-lg);max-width:700px;width:100%;max-height:85vh;overflow-y:auto;position:relative}
-.modal-hd{padding:18px 20px 0;position:sticky;top:0;background:var(--bg2);z-index:1;border-bottom:0.5px solid var(--border);padding-bottom:12px;margin-bottom:16px}
-.modal-close{position:absolute;top:14px;right:16px;background:var(--bg3);border:none;color:var(--muted);font-size:14px;cursor:pointer;width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center}
-.modal-close:hover{color:var(--text)}
-.modal-title{font-size:14px;font-weight:600;padding-right:30px;line-height:1.4;margin-bottom:6px}
-.modal-meta{display:flex;gap:8px;flex-wrap:wrap;font-size:10px;color:var(--muted)}
-.modal-body{padding:0 20px 20px}
-.modal-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}
-.m-card{background:var(--bg3);border-radius:var(--radius);padding:10px 12px}
-.m-card-lbl{font-size:9px;color:var(--muted);margin-bottom:3px;text-transform:uppercase;letter-spacing:.04em}
-.m-card-val{font-size:16px;font-weight:600;font-family:var(--mono)}
-.m-card-sub{font-size:9px;color:var(--muted);margin-top:2px}
-.modal-section-lbl{font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim);margin:14px 0 8px;border-bottom:0.5px solid var(--border);padding-bottom:5px}
+#moverlay{display:none;position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.78);align-items:center;justify-content:center;padding:20px}
+#moverlay.open{display:flex}
+.mbox{background:var(--bg2);border:0.5px solid var(--border2);border-radius:12px;max-width:680px;width:100%;max-height:85vh;overflow-y:auto;position:relative}
+.mhd{padding:16px 18px 0;border-bottom:0.5px solid var(--border);padding-bottom:10px;margin-bottom:14px;position:sticky;top:0;background:var(--bg2);z-index:1}
+.mtitle{font-size:14px;font-weight:600;padding-right:28px;line-height:1.4;margin-bottom:5px}
+.mmeta{display:flex;gap:7px;flex-wrap:wrap;font-size:9px;color:var(--muted)}
+.mclose{position:absolute;top:12px;right:14px;background:var(--bg3);border:none;color:var(--muted);font-size:13px;cursor:pointer;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center}
+.mclose:hover{color:var(--text)}
+.mbody{padding:0 18px 18px}
+.mgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-bottom:12px}
+.mcard{background:var(--bg3);border-radius:7px;padding:9px 11px}
+.mcard-lbl{font-size:8px;color:var(--muted);margin-bottom:2px;text-transform:uppercase;letter-spacing:.04em}
+.mcard-val{font-size:15px;font-weight:600;font-family:var(--mono)}
+.mcard-sub{font-size:8px;color:var(--dim);margin-top:2px}
+.msec{font-size:8px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim);margin:12px 0 7px;border-bottom:0.5px solid var(--border);padding-bottom:4px}
+.why-row{display:flex;gap:6px;align-items:flex-start;margin-bottom:4px;font-size:10px}
 
-/* WHY TOOLTIP */
-.why-panel{display:none;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--radius);padding:10px 13px;font-size:11px;color:var(--muted);line-height:1.6;margin-top:6px}
-.why-panel.show{display:block}
+/* SETTINGS MODAL */
+#settings-modal{display:none;position:fixed;inset:0;z-index:600;background:rgba(0,0,0,.78);align-items:center;justify-content:center;padding:20px}
+#settings-modal.open{display:flex}
+.settings-box{background:var(--bg2);border:0.5px solid var(--border2);border-radius:12px;max-width:560px;width:100%;max-height:85vh;overflow-y:auto}
+.settings-hd{padding:16px 18px;border-bottom:0.5px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.settings-hd h3{font-size:14px;font-weight:600}
+.settings-body{padding:16px 18px}
+.thresh-section{margin-bottom:16px}
+.thresh-title{font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;padding-bottom:4px;border-bottom:0.5px solid var(--border)}
+.thresh-row{display:flex;align-items:center;gap:10px;margin-bottom:7px}
+.thresh-lbl{font-size:10px;color:var(--text);flex:1;min-width:0}
+.thresh-desc{font-size:9px;color:var(--muted)}
+.thresh-input{width:80px;background:var(--bg3);border:0.5px solid var(--border2);border-radius:5px;padding:4px 8px;color:var(--text);font-size:11px;outline:none;text-align:right;font-family:var(--mono)}
+.thresh-input:focus{border-color:var(--blue)}
+.thresh-unit{font-size:10px;color:var(--muted);width:20px}
+.thresh-avg{font-size:9px;color:var(--dim);width:70px;text-align:right;font-family:var(--mono)}
 
-/* FILTER ROW */
-.filter-row{display:flex;gap:7px;flex-wrap:wrap;align-items:center;padding:10px 14px;border-bottom:0.5px solid var(--border)}
-.filter-row input{background:var(--bg3);border:0.5px solid var(--border2);border-radius:6px;padding:5px 10px;color:var(--text);font-size:11px;outline:none;width:160px}
-.filter-row input:focus{border-color:var(--blue)}
-.filter-row select{background:var(--bg3);border:0.5px solid var(--border2);border-radius:6px;padding:5px 10px;color:var(--text);font-size:11px;outline:none;cursor:pointer}
-.filter-cnt{font-size:10px;color:var(--muted);margin-left:auto}
+/* EXPORT */
+.export-row{display:flex;gap:6px;padding:9px 13px;border-top:0.5px solid var(--border)}
 
-/* NV GROWTH LINE */
-.peak-badge{position:absolute;background:var(--amber);color:#000;font-size:9px;font-weight:700;padding:2px 5px;border-radius:4px;pointer-events:none;transform:translateX(-50%)}
+/* GRIDS */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+.g4{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px}
+.g21{display:grid;grid-template-columns:2fr 1fr;gap:12px}
+.g32{display:grid;grid-template-columns:3fr 2fr;gap:12px}
 
-/* EXPORT ROW */
-.export-row{display:flex;gap:6px;flex-wrap:wrap;padding:10px 14px;border-top:0.5px solid var(--border);background:var(--bg);margin-top:auto}
+/* PANEL SCROLL */
+.pscroll{max-height:300px;overflow-y:auto}
 
-/* SCROLLABLE PANEL BODY */
-.panel-scroll{max-height:340px;overflow-y:auto}
+/* NV MOMENTUM badge */
+.mom-pos{color:var(--teal)}
+.mom-neg{color:var(--coral)}
 
-/* TIER VIDEO GRID */
-.tier-video-grid{display:flex;flex-direction:column;gap:6px}
-.tier-video-row{background:var(--bg3);border-radius:var(--radius);padding:9px 12px;cursor:pointer;transition:background .12s;border-left:2px solid transparent}
-.tier-video-row:hover{background:var(--bg4)}
-
-/* ACTIVE FILTER PILL */
-.active-filter{display:inline-flex;align-items:center;gap:4px;background:rgba(74,158,232,.15);color:var(--blue);border:0.5px solid rgba(74,158,232,.3);border-radius:10px;font-size:10px;padding:2px 8px}
-.active-filter button{background:none;border:none;color:var(--blue);cursor:pointer;font-size:11px;padding:0;line-height:1}
-
-/* PERFORMANCE COLOR LEGEND */
-.perf-legend{display:flex;gap:10px;font-size:9px;color:var(--muted);flex-wrap:wrap}
-.perf-dot{width:7px;height:7px;border-radius:50%;display:inline-block;margin-right:3px}
-
-/* CUSTOM METRIC */
-.custom-metric-row{display:flex;gap:7px;align-items:center;flex-wrap:wrap}
-.custom-result{font-size:13px;font-family:var(--mono);color:var(--blue);font-weight:600}
-
-@media(max-width:768px){
-  .grid-2,.grid-3,.grid-4,.grid-6,.grid-21,.grid-12,.grid-32{grid-template-columns:1fr}
-  .modal-grid{grid-template-columns:1fr 1fr}
-  .donut-wrap{flex-direction:column}
+@media(max-width:900px){
+  .sidebar{transform:translateX(-100%)}
+  .main{margin-left:0}
+  .g2,.g3,.g4,.g21,.g32,.best-grid,.weekly-grid,.kpi-grid,.diag-grid{grid-template-columns:1fr}
+  .mgrid{grid-template-columns:1fr 1fr}
 }
 </style>
 </head>
 <body>
 
-<!-- SETUP SCREEN -->
-<div id="setup-screen">
-  <div class="setup-card">
+<!-- SETUP -->
+<div id="setup">
+  <div class="scard">
     <h2>YouTube Analytics Dashboard</h2>
-    <p class="setup-sub">Connect your Google Sheet to get started. Publish the DATA GEOFF tab as CSV and paste the link.</p>
-    <div class="setup-step"><div class="step-n">1</div><div class="step-b"><strong>Open in Google Sheets</strong><p>Go to <a href="https://sheets.google.com" target="_blank">sheets.google.com</a> and open your file. Import from Excel if needed.</p></div></div>
-    <div class="setup-step"><div class="step-n">2</div><div class="step-b"><strong>Publish the "DATA GEOFF" sheet</strong><p><strong>File → Share → Publish to web</strong> → select <strong>DATA GEOFF</strong> → format <strong>CSV</strong> → click Publish → copy the link.</p></div></div>
-    <div class="setup-step"><div class="step-n">3</div><div class="step-b"><strong>Paste the link below</strong><p>It looks like <code>https://docs.google.com/spreadsheets/d/...</code></p></div></div>
-    <label class="form-label" for="surl">Google Sheets CSV link</label>
-    <input class="form-input" type="text" id="surl" placeholder="https://docs.google.com/spreadsheets/d/...">
-    <div class="form-hint">Stored only in your browser. Your sheet stays private.</div>
-    <button class="btn btn-primary" onclick="saveLink()">Connect & Launch →</button>
-    <div class="err-msg" id="serr"></div>
+    <p>Connect your Google Sheet — publish the DATA GEOFF tab as CSV and paste the link below.</p>
+    <div class="sstep"><div class="sn">1</div><div class="sb"><strong>Open in Google Sheets</strong><p>Go to <a href="https://sheets.google.com" target="_blank" style="color:var(--blue)">sheets.google.com</a> and open your file.</p></div></div>
+    <div class="sstep"><div class="sn">2</div><div class="sb"><strong>Publish the DATA GEOFF sheet</strong><p><strong>File → Share → Publish to web</strong> → select <strong>DATA GEOFF</strong> → <strong>CSV</strong> → Publish → copy link.</p></div></div>
+    <div class="sstep"><div class="sn">3</div><div class="sb"><strong>Paste below</strong><p>Looks like <code>https://docs.google.com/spreadsheets/d/...</code></p></div></div>
+    <label class="flabel" for="surl">Google Sheets CSV link</label>
+    <input class="finput" type="text" id="surl" placeholder="https://docs.google.com/spreadsheets/d/...">
+    <div class="fhint">Stored only in your browser.</div>
+    <button class="btn btn-p" onclick="saveLink()">Connect & Launch →</button>
+    <div class="ferr" id="serr"></div>
   </div>
 </div>
 
-<!-- MAIN DASHBOARD -->
-<div id="dash">
+<!-- APP -->
+<div id="app">
 
-  <!-- HEADER -->
-  <div class="header">
-    <div class="header-left">
+  <!-- SIDEBAR -->
+  <nav class="sidebar">
+    <div class="sidebar-logo">
       <div class="logo">Geoff <span>Analytics</span></div>
-      <div class="header-tag" id="sync-tag">Live</div>
+      <div class="sync" id="sync-tag">Live</div>
     </div>
-    <div class="header-right">
-      <div id="active-filters-row" style="display:flex;gap:5px;flex-wrap:wrap"></div>
-      <select class="metric-select" id="global-metric" onchange="setGlobalMetric(this.value)" title="Global metric: updates all charts">
-        <option value="imp">Avg Impressions</option>
-        <option value="nv_ctr">Avg CTR (NV)</option>
-        <option value="ctr">Avg CTR (Total)</option>
-        <option value="svr">Avg Sub/View Ratio</option>
-        <option value="snvr">Avg Sub/NV Ratio</option>
-        <option value="ret">Avg Retention</option>
-      </select>
-      <div class="win-group">
-        <button class="win-btn active" id="w24h" onclick="setWin('24h')">24H</button>
-        <button class="win-btn" id="w7d" onclick="setWin('7d')">7D</button>
-        <button class="win-btn" id="w28d" onclick="setWin('28d')">28D</button>
+    <div class="sidebar-nav">
+      <div class="nav-section">Overview</div>
+      <a class="nav-item active" href="#s-summary" onclick="navClick(this)"><span class="nav-icon">📊</span>Weekly Summary</a>
+      <a class="nav-item" href="#s-kpis" onclick="navClick(this)"><span class="nav-icon">🎯</span>KPI Cards</a>
+      <a class="nav-item" href="#s-trend" onclick="navClick(this)"><span class="nav-icon">📈</span>Trend</a>
+      <div class="nav-section">Audience</div>
+      <a class="nav-item" href="#s-donuts" onclick="navClick(this)"><span class="nav-icon">🍩</span>Audience Split</a>
+      <a class="nav-item" href="#s-diagnostic" onclick="navClick(this)"><span class="nav-icon">🔍</span>Diagnostic</a>
+      <div class="nav-section">Growth</div>
+      <a class="nav-item" href="#s-nv-growth" onclick="navClick(this)"><span class="nav-icon">🚀</span>NV Growth Line</a>
+      <a class="nav-item" href="#s-time" onclick="navClick(this)"><span class="nav-icon">🕐</span>Over Time</a>
+      <div class="nav-section">Performance</div>
+      <a class="nav-item" href="#s-ctr-split" onclick="navClick(this)"><span class="nav-icon">⚡</span>CTR Split</a>
+      <a class="nav-item" href="#s-avd-split" onclick="navClick(this)"><span class="nav-icon">⏱</span>AVD Split</a>
+      <a class="nav-item" href="#s-sub-ratios" onclick="navClick(this)"><span class="nav-icon">✅</span>Sub Ratios</a>
+      <a class="nav-item" href="#s-sub-growth" onclick="navClick(this)"><span class="nav-icon">📥</span>Sub Growth</a>
+      <div class="nav-section">Content</div>
+      <a class="nav-item" href="#s-topic" onclick="navClick(this)"><span class="nav-icon">🏷</span>By Topic</a>
+      <a class="nav-item" href="#s-format" onclick="navClick(this)"><span class="nav-icon">📝</span>By Format</a>
+      <a class="nav-item" href="#s-scatter" onclick="navClick(this)"><span class="nav-icon">💠</span>CTR vs Impr.</a>
+      <div class="nav-section">Segments</div>
+      <a class="nav-item" href="#s-leaders" onclick="navClick(this)"><span class="nav-icon">🏆</span>NV/RV Leaders</a>
+      <a class="nav-item" href="#s-tiers" onclick="navClick(this)"><span class="nav-icon">🎖</span>Tier Breakdown</a>
+      <a class="nav-item" href="#s-cadence" onclick="navClick(this)"><span class="nav-icon">📅</span>Cadence</a>
+      <div class="nav-section">Videos</div>
+      <a class="nav-item" href="#s-table" onclick="navClick(this)"><span class="nav-icon">📋</span>All Videos</a>
+    </div>
+    <div class="sidebar-bottom">
+      <button class="btn btn-g btn-sm" onclick="openSettings()" style="width:100%;justify-content:center">⚙ Thresholds</button>
+      <button class="btn btn-g btn-sm" onclick="exportCSV()" style="width:100%;justify-content:center">↓ Export CSV</button>
+    </div>
+  </nav>
+
+  <!-- MAIN -->
+  <div class="main">
+
+    <!-- TOPBAR -->
+    <div class="topbar">
+      <div class="topbar-l">
+        <div class="pill-wrap" id="active-filters"></div>
       </div>
-      <button class="btn btn-ghost btn-sm" onclick="loadData()">↻ Refresh</button>
-      <button class="btn btn-ghost btn-sm" onclick="clearAllFilters()">✕ Clear filters</button>
-      <button class="btn btn-ghost btn-sm" onclick="showExport()">↓ Export</button>
-      <button class="btn btn-ghost btn-icon btn-sm" onclick="resetLink()" title="Change sheet link">⚙</button>
-    </div>
-  </div>
-
-  <!-- ALERTS BAR -->
-  <div class="alerts-bar" id="alerts-bar"></div>
-
-  <div class="dash-body">
-
-    <!-- TREND SUMMARY -->
-    <div class="trend-strip" id="trend-strip">
-      <span class="trend-lbl">Trend</span>
-      <span id="trend-content" style="color:var(--muted);font-size:11px">Loading...</span>
-    </div>
-
-    <!-- BEST OF + KPI CARDS -->
-    <div>
-      <div class="section-label">Channel highlights</div>
-      <div class="grid-4" id="best-row" style="margin-bottom:10px"></div>
-      <div class="grid-6" id="kpi-row"></div>
+      <div class="topbar-r">
+        <select class="msel" id="gmetric" onchange="setGM(this.value)">
+          <option value="imp">Avg Impressions</option>
+          <option value="nv_ctr">Avg CTR (NV)</option>
+          <option value="ctr">Avg CTR (Total)</option>
+          <option value="svr">Sub/View Ratio</option>
+          <option value="snvr">Sub/NV Ratio</option>
+          <option value="ret">Avg Retention</option>
+        </select>
+        <div class="win-g">
+          <button class="win-btn active" id="w24h" onclick="setWin('24h')">24H</button>
+          <button class="win-btn" id="w7d" onclick="setWin('7d')">7D</button>
+          <button class="win-btn" id="w28d" onclick="setWin('28d')">28D</button>
+        </div>
+        <button class="btn btn-g btn-sm" onclick="loadData()">↻ Refresh</button>
+        <button class="btn btn-g btn-sm" onclick="clearFilters()">✕ Filters</button>
+      </div>
     </div>
 
-    <!-- AUDIENCE DONUTS -->
-    <div>
-      <div class="section-label">Audience segmentation — click a segment to filter everything</div>
-      <div class="grid-2">
-        <div class="panel">
-          <div class="panel-header">
-            <div class="panel-title">NV / Casual / Regular viewers <button class="why-btn" onclick="toggleWhy('why-donut1')">? why</button></div>
-          </div>
-          <div class="panel-body">
-            <div class="why-panel" id="why-donut1">NV = New Viewers (never seen your channel). CV = Casual Viewers (seen 1-2 videos). RV = Regular Viewers (frequent watchers). A high NV% means you're reaching new audiences. High RV% means strong loyalty.</div>
-            <div class="donut-wrap">
-              <div class="donut-chart-wrap">
-                <canvas id="donut1" width="140" height="140"></canvas>
-                <div class="donut-center"><div class="donut-center-val" id="d1-total">—</div><div class="donut-center-lbl">impressions</div></div>
+    <!-- ALERTS -->
+    <div class="alerts" id="alerts"></div>
+
+    <!-- BODY -->
+    <div class="body">
+
+      <!-- WEEKLY SUMMARY -->
+      <div id="s-summary">
+        <div class="sec-label">Weekly summary — last 5 vs previous 5 videos</div>
+        <div class="weekly-grid" id="weekly-grid"></div>
+      </div>
+
+      <!-- BEST OF + TREND -->
+      <div id="s-kpis">
+        <div class="sec-label">Channel highlights</div>
+        <div class="best-grid" id="best-row" style="margin-bottom:10px"></div>
+        <div class="kpi-grid" id="kpi-row"></div>
+      </div>
+
+      <!-- TREND -->
+      <div id="s-trend">
+        <div class="trend" id="trend-strip"><span class="tlbl">Trend</span><span id="trend-c" style="font-size:10px;color:var(--muted)">Loading...</span></div>
+      </div>
+
+      <!-- DONUTS -->
+      <div id="s-donuts">
+        <div class="sec-label">Audience segmentation — click a segment to filter dashboard</div>
+        <div class="g2">
+          <div class="panel">
+            <div class="ph"><div class="pt">NV / Casual / Regular viewers <button class="why" onclick="tw('w1')">? why</button></div></div>
+            <div class="pb">
+              <div class="wp" id="w1">NV = New Viewers (first time seeing your channel). CV = Casual Viewers (seen a couple videos). RV = Regular Viewers (frequent watchers). High NV% = growth. High RV% = loyalty.</div>
+              <div class="donut-wrap">
+                <div class="dnut-c"><canvas id="d1" width="130" height="130"></canvas><div class="dnut-center"><div class="dnut-cv" id="d1t">—</div><div class="dnut-cl">total impr.</div></div></div>
+                <div class="dleg" id="d1l"></div>
               </div>
-              <div class="donut-legend" id="donut1-legend"></div>
             </div>
           </div>
-        </div>
-        <div class="panel">
-          <div class="panel-header">
-            <div class="panel-title">NV_LEG / RV_LEG (legacy split) <button class="why-btn" onclick="toggleWhy('why-donut2')">? why</button></div>
-          </div>
-          <div class="panel-body">
-            <div class="why-panel" id="why-donut2">NV_LEG = Legacy New Viewers. RV_LEG = Legacy Returning Viewers. This uses the older YouTube classification. Compare with the left donut to see if the split changes across measurement systems.</div>
-            <div class="donut-wrap">
-              <div class="donut-chart-wrap">
-                <canvas id="donut2" width="140" height="140"></canvas>
-                <div class="donut-center"><div class="donut-center-val" id="d2-total">—</div><div class="donut-center-lbl">impressions</div></div>
+          <div class="panel">
+            <div class="ph"><div class="pt">NV_LEG / RV_LEG — legacy split <button class="why" onclick="tw('w2')">? why</button></div></div>
+            <div class="pb">
+              <div class="wp" id="w2">Legacy classification: NV_LEG = viewers new to this video. RV_LEG = viewers who've seen it before. Compare with left donut to understand classification differences.</div>
+              <div class="donut-wrap">
+                <div class="dnut-c"><canvas id="d2" width="130" height="130"></canvas><div class="dnut-center"><div class="dnut-cv" id="d2t">—</div><div class="dnut-cl">total impr.</div></div></div>
+                <div class="dleg" id="d2l"></div>
               </div>
-              <div class="donut-legend" id="donut2-legend"></div>
             </div>
           </div>
         </div>
       </div>
-    </div>
 
-    <!-- TIME SERIES CHARTS -->
-    <div>
-      <div class="section-label">Performance over time</div>
-      <div class="grid-2">
+      <!-- DIAGNOSTIC -->
+      <div id="s-diagnostic">
+        <div class="sec-label">Packaging vs distribution diagnostic — click any bucket to see those videos</div>
+        <div class="diag-grid" id="diag-grid"></div>
+      </div>
+
+      <!-- NV GROWTH LINE -->
+      <div id="s-nv-growth">
+        <div class="sec-label">New viewer growth — core growth signal</div>
         <div class="panel">
-          <div class="panel-header">
-            <div class="panel-title">Impressions over time <button class="why-btn" onclick="toggleWhy('why-imp')">? why</button></div>
-            <div style="display:flex;gap:5px">
-              <button class="btn btn-ghost btn-xs" onclick="setTimeMetric('imp','c-imp')">Impressions</button>
-              <button class="btn btn-ghost btn-xs" onclick="setTimeMetric('views','c-imp')">Views</button>
-              <button class="btn btn-ghost btn-xs" onclick="setTimeMetric('ctr','c-imp')">CTR</button>
-            </div>
+          <div class="ph">
+            <div class="pt">NV impressions per video — peaks = growth drivers <button class="why" onclick="tw('wnvg')">? why</button></div>
+            <span id="nv-peak" style="font-size:9px;color:var(--amber)"></span>
           </div>
-          <div class="panel-body">
-            <div class="why-panel" id="why-imp">Impressions tell you how often YouTube shows your thumbnails. Rising impressions = YouTube is distributing your content more. If impressions rise but CTR drops, your packaging is the problem.</div>
-            <div class="chart-container" style="height:200px"><canvas id="c-imp" role="img" aria-label="Impressions over time"></canvas></div>
+          <div class="pb">
+            <div class="wp" id="wnvg">Orange peaks = videos that brought in far more new viewers than your average. The multiplier shows how much better they were (e.g. 2.4x = brought in 2.4× the normal amount of new viewers). These are your distribution winners — study what they have in common.</div>
+            <div class="cc" style="height:210px"><canvas id="c-nvg" role="img" aria-label="NV Growth"></canvas></div>
           </div>
         </div>
-        <div class="panel">
-          <div class="panel-header">
-            <div class="panel-title">CTR over time (NV vs Total) <button class="why-btn" onclick="toggleWhy('why-ctr-time')">? why</button></div>
+      </div>
+
+      <!-- TIME CHARTS -->
+      <div id="s-time">
+        <div class="sec-label">Performance over time</div>
+        <div class="g2">
+          <div class="panel">
+            <div class="ph">
+              <div class="pt">Impressions over time <button class="why" onclick="tw('wimp')">? why</button></div>
+              <div style="display:flex;gap:4px">
+                <button class="btn btn-g btn-xs" onclick="setTM('imp')">Impr.</button>
+                <button class="btn btn-g btn-xs" onclick="setTM('views')">Views</button>
+                <button class="btn btn-g btn-xs" onclick="setTM('ctr')">CTR</button>
+              </div>
+            </div>
+            <div class="pb">
+              <div class="wp" id="wimp">Rising impressions = YouTube is distributing your content more. If impressions rise but CTR drops, your packaging is the problem. If CTR rises but impressions stay flat, YouTube isn't testing your content widely enough.</div>
+              <div class="cc" style="height:190px"><canvas id="c-time" role="img" aria-label="Over time"></canvas></div>
+            </div>
           </div>
-          <div class="panel-body">
-            <div class="why-panel" id="why-ctr-time">NV CTR = how well your title/thumbnail works for people who don't know you. Total CTR includes returning viewers who click regardless. A gap between them reveals how much your audience loyalty is inflating your CTR numbers.</div>
-            <div class="chart-container" style="height:200px"><canvas id="c-ctr-time" role="img" aria-label="CTR over time"></canvas></div>
-            <div style="display:flex;gap:10px;margin-top:6px;font-size:9px;color:var(--muted)">
-              <span><span style="display:inline-block;width:10px;height:2px;background:#4A9EE8;vertical-align:middle;margin-right:4px"></span>NV CTR</span>
-              <span><span style="display:inline-block;width:10px;height:2px;background:#F0A030;border-top:1px dashed #F0A030;vertical-align:middle;margin-right:4px"></span>Total CTR</span>
+          <div class="panel">
+            <div class="ph">
+              <div class="pt">CTR over time — NV vs Total <button class="why" onclick="tw('wctrt')">? why</button></div>
+            </div>
+            <div class="pb">
+              <div class="wp" id="wctrt">The gap between NV CTR (blue) and Total CTR (dashed) shows how much your loyal audience is inflating your overall CTR. A shrinking gap = your thumbnails are getting stronger for cold audiences.</div>
+              <div class="cc" style="height:190px"><canvas id="c-ctrt" role="img" aria-label="CTR over time"></canvas></div>
+              <div style="display:flex;gap:10px;margin-top:5px;font-size:9px;color:var(--muted)"><span><span style="display:inline-block;width:10px;height:2px;background:#4A9EE8;vertical-align:middle;margin-right:3px"></span>NV CTR</span><span><span style="display:inline-block;width:10px;height:2px;background:#F0A030;vertical-align:middle;margin-right:3px;border-top:1px dashed #F0A030"></span>Total CTR</span></div>
             </div>
           </div>
         </div>
       </div>
-    </div>
 
-    <!-- NV GROWTH LINE (CORE) -->
-    <div>
-      <div class="section-label">New viewer growth — core growth signal</div>
-      <div class="panel">
-        <div class="panel-header">
-          <div class="panel-title">NV impressions per video — peaks = your growth drivers <button class="why-btn" onclick="toggleWhy('why-nv-growth')">? why</button></div>
-          <div style="display:flex;gap:5px;align-items:center">
-            <span id="nv-peak-info" style="font-size:10px;color:var(--amber)"></span>
+      <!-- CTR SPLIT -->
+      <div id="s-ctr-split">
+        <div class="sec-label">New vs Returning viewer behaviour</div>
+        <div class="g2">
+          <div class="panel">
+            <div class="ph"><div class="pt">CTR — New vs Returning <button class="why" onclick="tw('wctrs')">? why</button></div></div>
+            <div class="pb">
+              <div class="wp" id="wctrs">When NV CTR is much lower than RV CTR, your title/thumbnail works for fans but not strangers. That's a growth ceiling. You want NV CTR to be competitive — it means cold audiences are also compelled to click.</div>
+              <div class="cc" style="height:185px"><canvas id="c-ctrs" role="img" aria-label="CTR split"></canvas></div>
+              <div style="display:flex;gap:10px;margin-top:5px;font-size:9px;color:var(--muted)"><span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#4A9EE8;margin-right:3px;vertical-align:middle"></span>NV</span><span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#F0A030;margin-right:3px;vertical-align:middle"></span>Returning</span></div>
+            </div>
+          </div>
+          <div id="s-avd-split" class="panel">
+            <div class="ph"><div class="pt">AVD — New vs Returning (min) <button class="why" onclick="tw('wavds')">? why</button></div></div>
+            <div class="pb">
+              <div class="wp" id="wavds">If returning viewers watch much longer, your content rewards familiarity but doesn't hook cold audiences fast enough. Low NV AVD = the first 30 seconds need work.</div>
+              <div class="cc" style="height:185px"><canvas id="c-avds" role="img" aria-label="AVD split"></canvas></div>
+              <div style="display:flex;gap:10px;margin-top:5px;font-size:9px;color:var(--muted)"><span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#4A9EE8;margin-right:3px;vertical-align:middle"></span>NV</span><span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#F0A030;margin-right:3px;vertical-align:middle"></span>Returning</span></div>
+            </div>
           </div>
         </div>
-        <div class="panel-body">
-          <div class="why-panel" id="why-nv-growth">This shows how many NEW people each video brought in. Orange peaks = videos that massively outperformed your average for new viewer reach. The multiplier (e.g. 2.4x) tells you how much better that video was at reaching new people vs your typical video. These are your distribution winners.</div>
-          <div class="chart-container" style="height:220px"><canvas id="c-nv-growth" role="img" aria-label="NV growth line"></canvas></div>
+      </div>
+
+      <!-- SUB RATIOS -->
+      <div id="s-sub-ratios">
+        <div class="sec-label">Subscriber conversion ratios</div>
+        <div class="g2">
+          <div class="panel">
+            <div class="ph"><div class="pt">Sub ÷ View ratio <button class="why" onclick="tw('wsvr')">? why</button></div></div>
+            <div class="pb">
+              <div class="wp" id="wsvr">What % of all viewers subscribe from each video. A spike means that video has unusually strong conversion — find what made it spike and replicate it.</div>
+              <div class="cc" style="height:170px"><canvas id="c-svr" role="img" aria-label="Sub view ratio"></canvas></div>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="ph"><div class="pt">Sub ÷ New Viewer ratio <button class="why" onclick="tw('wsnvr')">? why</button></div></div>
+            <div class="pb">
+              <div class="wp" id="wsnvr">Of people discovering your channel for the first time, what % subscribe? This is your most important growth metric — it tells you which videos turn strangers into fans.</div>
+              <div class="cc" style="height:170px"><canvas id="c-snvr" role="img" aria-label="Sub NV ratio"></canvas></div>
+            </div>
+          </div>
         </div>
       </div>
-    </div>
 
-    <!-- CTR vs IMPRESSIONS SCATTER + RETENTION vs DURATION -->
-    <div>
-      <div class="section-label">Distribution vs packaging analysis</div>
-      <div class="grid-2">
+      <!-- SUB GROWTH -->
+      <div id="s-sub-growth">
+        <div class="sec-label">Subscriber growth — click any bar for full video details</div>
         <div class="panel">
-          <div class="panel-header">
-            <div class="panel-title">CTR vs Impressions <button class="why-btn" onclick="toggleWhy('why-ctr-imp')">? why</button></div>
-            <div style="display:flex;gap:5px;flex-wrap:wrap">
-              <select class="metric-select" id="scatter-x-sel" onchange="renderCtrImpScat()" style="font-size:10px;padding:3px 7px">
+          <div class="ph"><div class="pt">Subs gained per video <button class="why" onclick="tw('wsubg')">? why</button></div></div>
+          <div class="pb">
+            <div class="wp" id="wsubg">Spikes reveal which videos convert viewers into long-term audience members. Cross-reference with Sub/NV ratio — if a video gets subs but low NV%, it's converting your existing audience, not growing it.</div>
+            <div class="cc" style="height:175px"><canvas id="c-subg" role="img" aria-label="Sub growth"></canvas></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TOPIC + FORMAT -->
+      <div id="s-topic">
+        <div class="sec-label">Content performance</div>
+        <div class="g2">
+          <div class="panel">
+            <div class="ph">
+              <div class="pt">Performance by topic <button class="why" onclick="tw('wtopic')">? why</button></div>
+              <div style="display:flex;gap:4px">
+                <button class="btn btn-g btn-xs" id="tp-ctr" onclick="setTP('ctr')">CTR</button>
+                <button class="btn btn-g btn-xs" id="tp-views" onclick="setTP('views')">Views</button>
+                <button class="btn btn-g btn-xs" id="tp-ret" onclick="setTP('ret')">Retention</button>
+                <button class="btn btn-g btn-xs active" id="tp-imp" onclick="setTP('imp')">Impr.</button>
+              </div>
+            </div>
+            <div class="pb">
+              <div class="wp" id="wtopic">High CTR + low retention = title promises more than content delivers. High retention + low CTR = great content, weak packaging. Find topics where both are strong and double down.</div>
+              <div class="cc" style="height:220px"><canvas id="c-topic" role="img" aria-label="Topic"></canvas></div>
+            </div>
+          </div>
+          <div id="s-format" class="panel">
+            <div class="ph"><div class="pt">CTR by title format <button class="why" onclick="tw('wfmt')">? why</button></div></div>
+            <div class="pb">
+              <div class="wp" id="wfmt">Which title structure (Question, How-To, Statement, Why-Post) consistently gets the most clicks on your channel. Use this to pick your default format for new videos.</div>
+              <div class="cc" style="height:220px"><canvas id="c-fmt" role="img" aria-label="Format"></canvas></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CTR vs IMPRESSIONS SCATTER -->
+      <div id="s-scatter">
+        <div class="sec-label">Distribution vs packaging — scatter</div>
+        <div class="g2">
+          <div class="panel">
+            <div class="ph">
+              <div class="pt">CTR vs Impressions <button class="why" onclick="tw('wscat')">? why</button></div>
+              <select class="msel" id="scat-x" onchange="renderScat()" style="font-size:9px;padding:3px 7px">
                 <option value="imp">X: Impressions</option>
-                <option value="views">X: Views</option>
                 <option value="nv_imp">X: NV Impressions</option>
+                <option value="views">X: Views</option>
               </select>
             </div>
-          </div>
-          <div class="panel-body">
-            <div class="why-panel" id="why-ctr-imp">Top right = high distribution + good packaging (winners). Top left = good packaging but low reach (potential hidden gems). Bottom right = high reach but weak packaging. Bottom left = weak on both.</div>
-            <div class="chart-container" style="height:210px"><canvas id="c-ctr-imp" role="img" aria-label="CTR vs Impressions scatter"></canvas></div>
-          </div>
-        </div>
-        <div class="panel">
-          <div class="panel-header">
-            <div class="panel-title">Retention vs Video Duration <button class="why-btn" onclick="toggleWhy('why-ret-dur')">? why</button></div>
-          </div>
-          <div class="panel-body">
-            <div class="why-panel" id="why-ret-dur">Shows whether your shorter or longer videos hold attention better. If short videos cluster high on retention but long ones drop, your audience prefers concise content — or your long-form content needs better pacing.</div>
-            <div class="chart-container" style="height:210px"><canvas id="c-ret-dur" role="img" aria-label="Retention vs Duration"></canvas></div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- TOPIC + VIDEO TYPE PERFORMANCE -->
-    <div>
-      <div class="section-label">Content performance by topic & format</div>
-      <div class="grid-32">
-        <div class="panel">
-          <div class="panel-header">
-            <div class="panel-title">Performance by topic — CTR / Views / Retention <button class="why-btn" onclick="toggleWhy('why-topic')">? why</button></div>
-            <div style="display:flex;gap:4px">
-              <button class="btn btn-ghost btn-xs" id="tp-ctr" onclick="setTopicMetric('ctr')">CTR</button>
-              <button class="btn btn-ghost btn-xs" id="tp-views" onclick="setTopicMetric('views')">Views</button>
-              <button class="btn btn-ghost btn-xs" id="tp-ret" onclick="setTopicMetric('ret')">Retention</button>
-              <button class="btn btn-ghost btn-xs" id="tp-imp" onclick="setTopicMetric('imp')">Impr.</button>
+            <div class="pb">
+              <div class="wp" id="wscat">Top-right = distribution + packaging both strong. Top-left = good packaging, low distribution. Bottom-right = high reach, weak packaging. Color = performance score.</div>
+              <div class="cc" style="height:210px"><canvas id="c-scat" role="img" aria-label="CTR vs Impressions"></canvas></div>
             </div>
           </div>
-          <div class="panel-body">
-            <div class="why-panel" id="why-topic">Each topic cluster has different CTR and retention patterns. A topic with high CTR but low retention means the title promises something the content doesn't deliver. High retention but low CTR = great content, weak packaging.</div>
-            <div class="chart-container" style="height:230px"><canvas id="c-topic" role="img" aria-label="Topic performance"></canvas></div>
+          <div class="panel">
+            <div class="ph"><div class="pt">Retention vs Duration <button class="why" onclick="tw('wdur')">? why</button></div></div>
+            <div class="pb">
+              <div class="wp" id="wdur">Shows whether shorter or longer videos hold attention better on your channel. If short videos cluster high on retention, your audience prefers concise content.</div>
+              <div class="cc" style="height:210px"><canvas id="c-dur" role="img" aria-label="Retention vs Duration"></canvas></div>
+            </div>
           </div>
         </div>
+      </div>
+
+      <!-- LEADERBOARDS -->
+      <div id="s-leaders">
+        <div class="sec-label">NV & RV leaderboards — click any video to open details</div>
+        <div class="g4">
+          <div class="panel"><div class="ph"><div class="pt" style="color:var(--blue)">↑ NV Total</div></div><div class="pb pscroll" id="lb-nv-t"></div></div>
+          <div class="panel"><div class="ph"><div class="pt" style="color:var(--blue)">↑ NV Share %</div></div><div class="pb pscroll" id="lb-nv-r"></div></div>
+          <div class="panel"><div class="ph"><div class="pt" style="color:var(--amber)">↑ RV Total</div></div><div class="pb pscroll" id="lb-rv-t"></div></div>
+          <div class="panel"><div class="ph"><div class="pt" style="color:var(--amber)">↑ RV Share %</div></div><div class="pb pscroll" id="lb-rv-r"></div></div>
+        </div>
+      </div>
+
+      <!-- TIER BREAKDOWN -->
+      <div id="s-tiers">
+        <div class="sec-label">Tier keyword breakdown — click a row to see matching videos</div>
         <div class="panel">
-          <div class="panel-header">
-            <div class="panel-title">Performance by title format <button class="why-btn" onclick="toggleWhy('why-fmt')">? why</button></div>
-          </div>
-          <div class="panel-body">
-            <div class="why-panel" id="why-fmt">Question titles, How-To, Statement, Why-Post — each has a different CTR profile. Use this to find which format consistently outperforms on your channel, then double down on it.</div>
-            <div class="chart-container" style="height:230px"><canvas id="c-fmt" role="img" aria-label="Format performance"></canvas></div>
-          </div>
+          <div class="ph"><div class="pt">Performance by tier & category</div></div>
+          <div class="pb" id="tier-tbl"></div>
         </div>
       </div>
-    </div>
 
-    <!-- NV/RV SPLIT CHARTS -->
-    <div>
-      <div class="section-label">New vs Returning viewer behaviour</div>
-      <div class="grid-2">
+      <!-- CADENCE -->
+      <div id="s-cadence">
+        <div class="sec-label">Publishing cadence</div>
         <div class="panel">
-          <div class="panel-header">
-            <div class="panel-title">CTR — New vs Returning <button class="why-btn" onclick="toggleWhy('why-ctr-split')">? why</button></div>
+          <div class="ph">
+            <div class="pt">Days between uploads <button class="why" onclick="tw('wcad')">? why</button></div>
+            <div style="font-size:9px;color:var(--muted);display:flex;gap:8px"><span style="color:var(--teal)">■ ≤7d</span><span style="color:var(--amber)">■ 8-14d</span><span style="color:var(--coral)">■ >14d</span></div>
           </div>
-          <div class="panel-body">
-            <div class="why-panel" id="why-ctr-split">When NV CTR is much lower than RV CTR, your title/thumbnail works for fans but not strangers. That's a growth ceiling problem. You want NV CTR to be competitive — it means cold audiences are also compelled to click.</div>
-            <div class="chart-container" style="height:190px"><canvas id="c-ctr-split" role="img" aria-label="CTR NV vs RV"></canvas></div>
-            <div style="display:flex;gap:10px;margin-top:6px;font-size:9px;color:var(--muted)"><span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#4A9EE8;margin-right:3px;vertical-align:middle"></span>NV</span><span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#F0A030;margin-right:3px;vertical-align:middle"></span>Returning</span></div>
+          <div class="pb">
+            <div class="wp" id="wcad">Gaps over 14 days often correlate with lower impressions on the next video — YouTube reduces distribution when you're inconsistent. Target ≤7 days.</div>
+            <div class="cc" style="height:120px"><canvas id="c-cad" role="img" aria-label="Cadence"></canvas></div>
           </div>
         </div>
+      </div>
+
+      <!-- VIDEO TABLE -->
+      <div id="s-table">
+        <div class="sec-label">All videos — click any row for full breakdown</div>
         <div class="panel">
-          <div class="panel-header">
-            <div class="panel-title">AVD — New vs Returning (minutes) <button class="why-btn" onclick="toggleWhy('why-avd-split')">? why</button></div>
+          <div class="filter-row">
+            <input type="text" id="f-txt" placeholder="Search titles..." oninput="setF('text',this.value)">
+            <select id="f-top" onchange="setF('topic',this.value)"><option value="">All topics</option></select>
+            <select id="f-fmt" onchange="setF('format',this.value)"><option value="">All formats</option></select>
+            <select id="f-tier" onchange="setF('tier',this.value)"><option value="">All tiers</option><option value="Tier 1">Tier 1</option><option value="Tier 2">Tier 2</option><option value="Tier 3">Tier 3</option></select>
+            <select id="f-cat" onchange="setF('cat',this.value)"><option value="">All categories</option></select>
+            <button class="btn btn-g btn-xs" onclick="clearFilters()">Clear</button>
+            <span class="fcnt" id="tbl-cnt"></span>
           </div>
-          <div class="panel-body">
-            <div class="why-panel" id="why-avd-split">If returning viewers watch much longer than new viewers, your content rewards familiarity but doesn't hook cold audiences fast enough. The first 30 seconds matter most for NV AVD. Low NV AVD = your hook needs work.</div>
-            <div class="chart-container" style="height:190px"><canvas id="c-avd-split" role="img" aria-label="AVD split"></canvas></div>
-            <div style="display:flex;gap:10px;margin-top:6px;font-size:9px;color:var(--muted)"><span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#4A9EE8;margin-right:3px;vertical-align:middle"></span>NV</span><span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#F0A030;margin-right:3px;vertical-align:middle"></span>Returning</span></div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- SUB RATIOS -->
-    <div>
-      <div class="section-label">Subscriber conversion</div>
-      <div class="grid-2">
-        <div class="panel">
-          <div class="panel-header">
-            <div class="panel-title">Sub ÷ View ratio per video <button class="why-btn" onclick="toggleWhy('why-sv')">? why</button></div>
-          </div>
-          <div class="panel-body">
-            <div class="why-panel" id="why-sv">What % of all viewers subscribe from each video. A spike means that video has unusually strong CTA alignment, topic relevance, or emotional hook that converts viewers to subscribers. Find what made it spike and replicate it.</div>
-            <div class="chart-container" style="height:175px"><canvas id="c-sv-ratio" role="img" aria-label="Sub view ratio"></canvas></div>
-          </div>
-        </div>
-        <div class="panel">
-          <div class="panel-header">
-            <div class="panel-title">Sub ÷ New Viewer ratio per video <button class="why-btn" onclick="toggleWhy('why-snv')">? why</button></div>
-          </div>
-          <div class="panel-body">
-            <div class="why-panel" id="why-snv">This is your cold audience conversion rate. Of everyone discovering your channel for the first time through this video, how many subscribe? This is your most important growth metric — it tells you which videos are best at turning strangers into fans.</div>
-            <div class="chart-container" style="height:175px"><canvas id="c-snv-ratio" role="img" aria-label="Sub NV ratio"></canvas></div>
+          <div class="tbl-wrap" id="tbl-wrap"></div>
+          <div class="export-row">
+            <button class="btn btn-g btn-sm" onclick="exportCSV()">↓ Export CSV</button>
           </div>
         </div>
       </div>
-    </div>
 
-    <!-- NV/RV LEADERBOARDS -->
-    <div>
-      <div class="section-label">New & Returning viewer leaderboards — click any video to open details</div>
-      <div class="grid-4">
-        <div class="panel"><div class="panel-header"><div class="panel-title" style="color:var(--blue)">↑ NV Total impressions</div></div><div class="panel-body panel-scroll"><div id="lb-nv-total"></div></div></div>
-        <div class="panel"><div class="panel-header"><div class="panel-title" style="color:var(--blue)">↑ NV Share % of total</div></div><div class="panel-body panel-scroll"><div id="lb-nv-ratio"></div></div></div>
-        <div class="panel"><div class="panel-header"><div class="panel-title" style="color:var(--amber)">↑ RV Total impressions</div></div><div class="panel-body panel-scroll"><div id="lb-rv-total"></div></div></div>
-        <div class="panel"><div class="panel-header"><div class="panel-title" style="color:var(--amber)">↑ RV Share % of total</div></div><div class="panel-body panel-scroll"><div id="lb-rv-ratio"></div></div></div>
-      </div>
-    </div>
+    </div><!-- /body -->
+  </div><!-- /main -->
+</div><!-- /app -->
 
-    <!-- SUBSCRIBER GROWTH -->
-    <div>
-      <div class="section-label">Subscriber growth — hover for video name, click for full details</div>
-      <div class="panel">
-        <div class="panel-header">
-          <div class="panel-title">Subs gained per video <button class="why-btn" onclick="toggleWhy('why-sub-growth')">? why</button></div>
-        </div>
-        <div class="panel-body">
-          <div class="why-panel" id="why-sub-growth">Subscriber spikes reveal which videos are converting viewers into long-term audience members. Cross-reference these with your Sub/NV ratio — if a video gets subs but low NV %, it's converting your existing audience, not growing it.</div>
-          <div class="chart-container" style="height:185px"><canvas id="c-sub-growth" role="img" aria-label="Sub growth"></canvas></div>
-        </div>
-      </div>
+<!-- VIDEO MODAL -->
+<div id="moverlay" onclick="if(event.target===this)closeM()">
+  <div class="mbox">
+    <div class="mhd">
+      <div class="mtitle" id="mtitle"></div>
+      <div class="mmeta" id="mmeta"></div>
+      <button class="mclose" onclick="closeM()">✕</button>
     </div>
-
-    <!-- TIER PATTERN DETECTOR -->
-    <div>
-      <div class="section-label">Tier keyword performance — click a row to see matching videos</div>
-      <div class="panel">
-        <div class="panel-header">
-          <div class="panel-title">Title pattern analysis by tier</div>
-          <div class="perf-legend">
-            <span><span class="perf-dot" style="background:var(--teal)"></span>Above avg CTR</span>
-            <span><span class="perf-dot" style="background:var(--coral)"></span>Below avg CTR</span>
-          </div>
-        </div>
-        <div class="panel-body" id="tier-tbl-wrap"></div>
-      </div>
-    </div>
-
-    <!-- PUBLISHING CADENCE -->
-    <div>
-      <div class="section-label">Publishing cadence</div>
-      <div class="panel">
-        <div class="panel-header">
-          <div class="panel-title">Days between uploads <button class="why-btn" onclick="toggleWhy('why-cadence')">? why</button></div>
-          <div style="display:flex;gap:8px;font-size:9px;color:var(--muted)"><span style="color:var(--teal)">■ ≤7d</span><span style="color:var(--amber)">■ 8-14d</span><span style="color:var(--coral)">■ >14d</span></div>
-        </div>
-        <div class="panel-body">
-          <div class="why-panel" id="why-cadence">Consistency matters for the algorithm. Gaps over 14 days often correlate with lower impressions on the next video — YouTube reduces your distribution when you're inconsistent. Target ≤7 days.</div>
-          <div class="chart-container" style="height:130px"><canvas id="c-cadence" role="img" aria-label="Publishing cadence"></canvas></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- CUSTOM METRIC CALCULATOR -->
-    <div>
-      <div class="section-label">Custom metric calculator</div>
-      <div class="panel">
-        <div class="panel-header"><div class="panel-title">Build your own metric</div></div>
-        <div class="panel-body">
-          <div class="custom-metric-row">
-            <select class="metric-select" id="cm-a"><option value="imp_7d">Impressions 7D</option><option value="imp_24h">Impressions 24H</option><option value="ctr_7d">CTR 7D</option><option value="ctr_24h">CTR 24H</option><option value="views_7d">Views 7D</option><option value="views_24h">Views 24H</option><option value="views_28d">Views 28D</option><option value="sub_7d">Subs 7D</option></select>
-            <select class="metric-select" id="cm-op"><option value="div">÷</option><option value="mul">×</option><option value="sub">−</option></select>
-            <select class="metric-select" id="cm-b"><option value="imp_24h">Impressions 24H</option><option value="imp_7d">Impressions 7D</option><option value="views_24h">Views 24H</option><option value="views_7d">Views 7D</option><option value="ctr_24h">CTR 24H</option><option value="sub_24h">Subs 24H</option></select>
-            <button class="btn btn-ghost btn-sm" onclick="calcCustomMetric()">Calculate</button>
-            <span id="cm-result" class="custom-result"></span>
-          </div>
-          <div id="cm-chart-wrap" style="margin-top:10px;display:none">
-            <div class="chart-container" style="height:140px"><canvas id="c-custom" role="img" aria-label="Custom metric"></canvas></div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- VIDEO TABLE -->
-    <div>
-      <div class="section-label">All videos — click any row for full breakdown</div>
-      <div class="panel">
-        <div class="filter-row">
-          <input type="text" id="f-text" placeholder="Search titles..." oninput="setFilter('text',this.value)">
-          <select id="f-topic" onchange="setFilter('topic',this.value)"><option value="">All topics</option></select>
-          <select id="f-format" onchange="setFilter('format',this.value)"><option value="">All formats</option></select>
-          <select id="f-tier" onchange="setFilter('tier',this.value)"><option value="">All tiers</option><option value="1">Tier 1</option><option value="2">Tier 2</option><option value="3">Tier 3</option></select>
-          <button class="btn btn-ghost btn-xs" onclick="clearAllFilters()">Clear</button>
-          <span class="filter-cnt" id="tbl-cnt"></span>
-        </div>
-        <div class="tbl-wrap" style="max-height:480px;overflow-y:auto">
-          <div id="main-tbl"></div>
-        </div>
-        <div class="export-row">
-          <button class="btn btn-ghost btn-sm" onclick="exportCSV()">↓ Export CSV</button>
-          <button class="btn btn-ghost btn-sm" onclick="exportTableHTML()">↓ Export Table</button>
-        </div>
-      </div>
-    </div>
-
-  </div><!-- /dash-body -->
-</div><!-- /dash -->
-
-<!-- MODAL -->
-<div id="modal-overlay" onclick="if(event.target===this)closeModal()">
-  <div class="modal-box">
-    <div class="modal-hd">
-      <div class="modal-title" id="modal-title"></div>
-      <div class="modal-meta" id="modal-meta"></div>
-      <button class="modal-close" onclick="closeModal()">✕</button>
-    </div>
-    <div class="modal-body" id="modal-body"></div>
+    <div class="mbody" id="mbody"></div>
   </div>
 </div>
 
-<script>
-const STORE='geoff_v7';
-let cfg={};try{cfg=JSON.parse(localStorage.getItem(STORE)||'{}');}catch(e){}
-
-const TC={'Getting Ex Back':'#4A9EE8','Marriage & Divorce':'#F0A030','Affair & Infidelity':'#E8542A','Breakup Psychology':'#8B80E8','Avoidant & No Contact':'#1DB87A','General Relationship':'#7a7a8c','Relationship Advice & Mindset':'#E060A0','Rebuilding Relationship':'#5DCAA5'};
-const TIERS={1:[/save.*marr/i,/\bdivorc/i,/\bseparat/i,/\bspace\b/i],2:[/stonewall/i,/\baffair/i,/gaslight/i,/avoidant/i],3:[/compat/i,/cold.indiff/i]};
-const TIER_NAMES={1:'T1 — Marriage / Divorce / Space',2:'T2 — Stonewalling / Affairs / Avoidant',3:'T3 — Compatibility / Cold indifference'};
-const ALERTS_CFG={ctr_threshold:0.07,imp_drop_pct:0.2};
-
-function getTier(n){for(var t in TIERS){if(TIERS[t].some(function(r){return r.test(n);}))return parseInt(t);}return null;}
-
-let W='24h', globalMetric='imp', topicMetric='imp', timeMetric='imp', donutFilter=null;
-let charts={}, timer=null, parsedData=null;
-let filterState={text:'',topic:'',format:'',tier:''}, sortState={col:'imp',dir:'desc'};
-
-window.addEventListener('load',function(){if(cfg.csvUrl){showDash();loadData();}});
-document.addEventListener('keydown',function(e){if(e.key==='Escape')closeModal();});
-
-function showDash(){document.getElementById('setup-screen').classList.add('hide');document.getElementById('dash').classList.add('show');}
-function showSetup(){document.getElementById('setup-screen').classList.remove('hide');document.getElementById('dash').classList.remove('show');}
-function showErr(msg){var el=document.getElementById('serr');el.textContent=msg;el.style.display='block';}
-
-function saveLink(){
-  var url=document.getElementById('surl').value.trim();
-  document.getElementById('serr').style.display='none';
-  if(!url){showErr('Please paste your Google Sheets link.');return;}
-  if(!url.includes('docs.google.com/spreadsheets')){showErr('That doesn\'t look like a Google Sheets link.');return;}
-  cfg.csvUrl=toCsvUrl(url);localStorage.setItem(STORE,JSON.stringify(cfg));showDash();loadData();
-}
-function toCsvUrl(url){
-  if(url.includes('output=csv')||url.includes('tqx=out:csv'))return url;
-  var m=url.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/);
-  return m?'https://docs.google.com/spreadsheets/d/'+m[1]+'/gviz/tq?tqx=out:csv&sheet=DATA%20GEOFF':url;
-}
-function resetLink(){if(!confirm('Remove sheet link?'))return;clearTimeout(timer);localStorage.removeItem(STORE);cfg={};parsedData=null;document.getElementById('surl').value='';showSetup();}
-
-function setWin(w){W=w;['24h','7d','28d'].forEach(function(x){document.getElementById('w'+x).classList.toggle('active',x===w);});if(parsedData)renderAll(parsedData);}
-function setGlobalMetric(v){globalMetric=v;if(parsedData)renderAll(parsedData);}
-function setTopicMetric(v){topicMetric=v;['ctr','views','ret','imp'].forEach(function(x){var b=document.getElementById('tp-'+x);if(b)b.classList.toggle('active',x===v);});if(parsedData)renderTopicChart(getFilteredVs());}
-function setTimeMetric(v,canvasId){timeMetric=v;if(parsedData)renderTimeChart(getFilteredVs(),parsedData.bench[W]);}
-
-function setFilter(k,v){filterState[k]=v;updateActiveFilters();if(parsedData)renderFiltered();}
-function clearAllFilters(){filterState={text:'',topic:'',format:'',tier:''};donutFilter=null;['f-text','f-topic','f-format','f-tier'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});document.querySelectorAll('.donut-seg').forEach(function(s){s.classList.remove('active');});updateActiveFilters();if(parsedData)renderAll(parsedData);}
-
-function updateActiveFilters(){
-  var row=document.getElementById('active-filters-row');
-  var parts=[];
-  if(filterState.text)parts.push({k:'text',v:'Search: "'+filterState.text+'"'});
-  if(filterState.topic)parts.push({k:'topic',v:'Topic: '+filterState.topic});
-  if(filterState.format)parts.push({k:'format',v:'Format: '+filterState.format});
-  if(filterState.tier)parts.push({k:'tier',v:'Tier '+filterState.tier});
-  if(donutFilter)parts.push({k:'donut',v:'Segment: '+donutFilter});
-  row.innerHTML=parts.map(function(p){return'<span class="active-filter">'+p.v+'<button onclick="clearFilter(\''+p.k+'\')">&times;</button></span>';}).join('');
-}
-function clearFilter(k){if(k==='donut'){donutFilter=null;}else{filterState[k]='';}updateActiveFilters();if(parsedData)renderFiltered();}
-
-function getFilteredVs(){
-  if(!parsedData)return[];
-  return parsedData.videos.filter(function(v){
-    if(filterState.text&&!v.name.toLowerCase().includes(filterState.text.toLowerCase()))return false;
-    if(filterState.topic&&v.topic!==filterState.topic)return false;
-    if(filterState.format&&v.title_format!==filterState.format)return false;
-    if(filterState.tier&&v.tier!==parseInt(filterState.tier))return false;
-    if(donutFilter){var seg=donutFilter.split(':');if(seg[0]==='nv'&&v['nv_imp_'+W]==null)return false;if(seg[0]==='cv'&&v['cv_imp_'+W]==null)return false;if(seg[0]==='rv'&&v['rv_imp_'+W]==null)return false;}
-    return true;
-  });
-}
-
-function toggleWhy(id){var el=document.getElementById(id);if(el)el.classList.toggle('show');}
-
-async function loadData(){
-  document.getElementById('sync-tag').textContent='Syncing...';
-  clearTimeout(timer);
-  try{
-    var res=await fetch(cfg.csvUrl+'&t='+Date.now());
-    if(!res.ok)throw new Error('HTTP '+res.status+'. Re-publish as CSV.');
-    var text=await res.text();
-    if(text.trim().startsWith('<'))throw new Error('Got HTML instead of CSV. Re-publish as CSV.');
-    parsedData=parseCsv(text);
-    populateFilters(parsedData.videos);
-    renderAll(parsedData);
-    checkAlerts(parsedData);
-    var t=new Date();
-    document.getElementById('sync-tag').textContent='Updated '+t.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
-  }catch(e){document.getElementById('sync-tag').textContent='⚠ '+e.message;console.error(e);}
-  finally{timer=setTimeout(loadData,30000);}
-}
-
-function parseCsv(text){
-  var rows=[],cur=[],field='',inQ=false;
-  for(var i=0;i<text.length;i++){
-    var c=text[i];
-    if(inQ){if(c==='"'&&text[i+1]==='"'){field+='"';i++;}else if(c==='"'){inQ=false;}else{field+=c;}}
-    else{if(c==='"'){inQ=true;}else if(c===','){cur.push(field);field='';}else if(c==='\n'){cur.push(field);rows.push(cur);cur=[];field='';}else if(c!=='\r'){field+=c;}}
-  }
-  if(field||cur.length){cur.push(field);rows.push(cur);}
-  return buildData(rows);
-}
-
-function buildData(rows){
-  if(rows.length<2)throw new Error('Sheet is empty.');
-  var rawH=rows[0].map(function(h){return String(h||'');});
-  var hMap={};rawH.forEach(function(h,i){hMap[h]=i;hMap[h.trim()]=i;hMap[h.trim().toLowerCase()]=i;});
-  function ci(n){return hMap[n]!==undefined?hMap[n]:hMap[n.trim()]!==undefined?hMap[n.trim()]:hMap[n.trim().toLowerCase()]!==undefined?hMap[n.trim().toLowerCase()]:-1;}
-  function cell(r,n){var i=ci(n);return i>=0?r[i]:null;}
-  function num(v){if(v===null||v===undefined||v===''||String(v).startsWith('#'))return null;var n=parseFloat(String(v).replace(/[,%]/g,''));return isNaN(n)?null:n;}
-  function pct(v){if(v===null||v===undefined||v==='')return null;var s=String(v).trim();if(s.endsWith('%'))return parseFloat(s)/100;var n=parseFloat(s);if(isNaN(n))return null;return n>1?n/100:n;}
-  function nc(r,a,b){var v=cell(r,a);return(v!==null&&v!==undefined&&v!=='')?v:cell(r,b);}
-  function toDate(v){if(!v)return null;var s=String(v).trim();if(s.match(/^\d{4}-\d{2}-\d{2}/))return s.slice(0,10);if(s.match(/^\d{1,2}\/\d{1,2}\/\d{4}/)){var p=s.split('/');return p[2].slice(0,4)+'-'+p[0].padStart(2,'0')+'-'+p[1].padStart(2,'0');}return s.slice(0,10)||null;}
-  function parseDur(v){if(!v)return null;var s=String(v).trim();var m=s.match(/(\d+):(\d+):(\d+)/);if(m)return +m[1]*3600+ +m[2]*60+ +m[3];var n=parseFloat(s);if(!isNaN(n)&&n>0&&n<2)return Math.round(n*86400);return null;}
-
-  var videos=[];
-  for(var i=1;i<rows.length;i++){
-    var r=rows[i],name=cell(r,'NAME');
-    if(!name||String(name).trim()==='')continue;
-    var ns=String(name).trim().replace(/\n/g,'');
-    if(ns.startsWith('Unnamed'))continue;
-    var v={name:ns,tier:getTier(ns),title_format:String(cell(r,'Title Format')||'').trim()||null,hook:String(cell(r,'Emotional Hook')||'').trim()||null,topic:String(cell(r,'TOPIC')||'').trim()||null,pub_date:toDate(cell(r,'PUB_DATE')),vid_dur_s:parseDur(cell(r,'VID_DUR'))};
-    // All windows
-    ['24h','7d','28d'].forEach(function(s){
-      var suf=s==='24h'?'_24h':s==='7d'?'_7d':'_28d';
-      v['imp'+suf]=num(cell(r,s==='24h'?'24h (IMP)':s==='7d'?' 7D (IMP)':'28D (IMP)'));
-      v['views'+suf]=num(cell(r,s==='24h'?'24h (View)':s==='7d'?'NEW (View)':'28D (VIEW)'));
-      v['ctr'+suf]=s==='24h'?pct(nc(r,' 24hr CTR','24hr CTR')):s==='7d'?pct(cell(r,'Total 7D CTR')):pct(cell(r,'CTR_ 28D'));
-      v['ret'+suf]=s==='24h'?pct(cell(r,'Retention %')):s==='7d'?pct(cell(r,'Retention % 7D')):pct(cell(r,'Retention % 28D'));
-      v['sub'+suf]=num(cell(r,'SUB_GAIN'+suf.toUpperCase()));
-      v['likes'+suf]=num(cell(r,'LIKES'+suf.toUpperCase()));
-      v['nv_imp'+suf]=num(cell(r,'NV_IMP'+suf.toUpperCase()));
-      v['cv_imp'+suf]=num(cell(r,'CV_IMP'+suf.toUpperCase()));
-      v['rv_imp'+suf]=num(cell(r,'RV_IMP'+suf.toUpperCase()));
-      v['nv_leg_imp'+suf]=num(cell(r,'NV_LEG_IMP'+suf.toUpperCase()));
-      v['rv_leg_imp'+suf]=num(cell(r,'RV_LEG_IMP'+suf.toUpperCase()));
-      v['nv_views'+suf]=num(cell(r,'NV_VIEWS'+suf.toUpperCase()));
-      v['rv_views'+suf]=num(cell(r,'RV_VIEWS'+suf.toUpperCase()));
-      v['cv_views'+suf]=num(cell(r,'CV_VIEWS'+suf.toUpperCase()));
-      v['nv_ctr'+suf]=pct(cell(r,'NV_CTR'+suf.toUpperCase()));
-      v['rv_ctr'+suf]=pct(cell(r,'RV_CTR'+suf.toUpperCase()));
-      v['cv_ctr'+suf]=pct(cell(r,'CV_CTR'+suf.toUpperCase()));
-      v['nv_avd'+suf]=parseDur(cell(r,'NV_AVD'+suf.toUpperCase()));
-      v['rv_avd'+suf]=parseDur(cell(r,'RV_AVD'+suf.toUpperCase()));
-    });
-    // Legacy
-    v['nv_leg_views_24h']=num(cell(r,'NV_LEG_VIEWS_24H'));
-    v['rv_leg_views_24h']=num(cell(r,'RV_LEG_VIEWS_24H'));
-    videos.push(v);
-  }
-  if(!videos.length)throw new Error('No video rows found. Check tab is named "DATA GEOFF".');
-
-  function avg(f){var arr=videos.map(function(x){return x[f];}).filter(function(x){return x!=null&&!isNaN(x);});return arr.length?arr.reduce(function(a,b){return a+b;},0)/arr.length:0;}
-  var bench={};
-  ['24h','7d','28d'].forEach(function(s){
-    var suf=s==='24h'?'_24h':s==='7d'?'_7d':'_28d';
-    bench[s]={ctr:avg('ctr'+suf),imp:avg('imp'+suf),views:avg('views'+suf),ret:avg('ret'+suf),sub:avg('sub'+suf),nv_imp:avg('nv_imp'+suf),cv_imp:avg('cv_imp'+suf),rv_imp:avg('rv_imp'+suf),nv_ctr:avg('nv_ctr'+suf),rv_ctr:avg('rv_ctr'+suf),nv_avd:avg('nv_avd'+suf),rv_avd:avg('rv_avd'+suf)};
-  });
-  return{videos:videos,bench:bench};
-}
-
-function populateFilters(videos){
-  function fill(id,vals,d){var sel=document.getElementById(id);if(!sel)return;var cur=sel.value;sel.innerHTML='<option value="">'+d+'</option>';vals.forEach(function(v){var o=document.createElement('option');o.value=v;o.textContent=v;sel.appendChild(o);});sel.value=cur;}
-  fill('f-topic',[...new Set(videos.map(function(v){return v.topic;}).filter(Boolean))].sort(),'All topics');
-  fill('f-format',[...new Set(videos.map(function(v){return v.title_format;}).filter(Boolean))].sort(),'All formats');
-}
-
-function checkAlerts(d){
-  var b=d.bench[W], vs=d.videos;
-  var alerts=[];
-  var avgCtr=b.ctr;
-  if(avgCtr>0&&avgCtr<ALERTS_CFG.ctr_threshold)alerts.push({type:'warn',msg:'Avg CTR is '+(avgCtr*100).toFixed(1)+'% — below the '+Math.round(ALERTS_CFG.ctr_threshold*100)+'% target'});
-  var recent=vs.filter(function(v){return v.pub_date;}).sort(function(a,b){return new Date(b.pub_date)-new Date(a.pub_date);}).slice(0,3);
-  var old=vs.filter(function(v){return v.pub_date;}).sort(function(a,b){return new Date(b.pub_date)-new Date(a.pub_date);}).slice(3,8);
-  if(recent.length&&old.length){var rAvg=recent.map(function(v){return v['imp_'+W]||0;}).reduce(function(a,b){return a+b;})/recent.length;var oAvg=old.map(function(v){return v['imp_'+W]||0;}).reduce(function(a,b){return a+b;})/old.length;if(oAvg>0&&(rAvg-oAvg)/oAvg<-ALERTS_CFG.imp_drop_pct)alerts.push({type:'red',msg:'Impressions dropped '+Math.abs(Math.round((rAvg-oAvg)/oAvg*100))+'% in last 3 videos vs previous 5'});}
-  var bar=document.getElementById('alerts-bar');
-  if(alerts.length){bar.className='alerts-bar show';bar.innerHTML='<span style="font-size:9px;color:var(--amber);letter-spacing:.07em;text-transform:uppercase">Alerts</span>'+alerts.map(function(a){return'<span class="alert-item"><span class="alert-dot '+(a.type==='red'?'red':'')+'"></span>'+a.msg+'</span>';}).join('');
-  }else{bar.className='alerts-bar';}
-}
-
-function gf(W){return W==='24h'?'_24h':W==='7d'?'_7d':'_28d';}
-function suf(){return gf(W);}
-function impF(v){return v['imp'+suf()];}
-function sf(v){var s=suf();return{imp:v['imp'+s],views:v['views'+s],ctr:v['ctr'+s],ret:v['ret'+s],sub:v['sub'+s],likes:v['likes'+s],nv_imp:v['nv_imp'+s],cv_imp:v['cv_imp'+s],rv_imp:v['rv_imp'+s],nv_ctr:v['nv_ctr'+s],rv_ctr:v['rv_ctr'+s],nv_avd:v['nv_avd'+s],rv_avd:v['rv_avd'+s],nv_views:v['nv_views'+s],rv_views:v['rv_views'+s]};}
-
-var M='rgba(255,255,255,.38)',GR='rgba(255,255,255,.05)';
-function dc(k){if(charts[k]){charts[k].destroy();delete charts[k];}}
-function grpAvg(vs,kFn,vFn){var m={};vs.forEach(function(v){var k=kFn(v),val=vFn(v);if(!k||val==null||isNaN(val))return;if(!m[k])m[k]=[];m[k].push(val);});var r={};Object.keys(m).forEach(function(k){r[k]=m[k].reduce(function(a,b){return a+b;},0)/m[k].length;});return r;}
-function avnum(vs,f){var arr=vs.map(function(x){return x[f];}).filter(function(x){return x!=null&&!isNaN(x);});return arr.length?arr.reduce(function(a,b){return a+b;},0)/arr.length:0;}
-function perfScore(v,b){var s=[];var d=sf(v);if(b.ctr>0&&d.ctr!=null)s.push(Math.min(d.ctr/b.ctr,2)*50);if(b.imp>0&&d.imp!=null)s.push(Math.min(d.imp/b.imp,2)*50);if(b.ret>0&&d.ret!=null)s.push(Math.min(d.ret/b.ret,2)*50);if(b.views>0&&d.views!=null)s.push(Math.min(d.views/b.views,2)*50);return s.length?Math.round(s.reduce(function(a,b){return a+b;},0)/s.length):null;}
-
-function renderAll(d){
-  var vs=getFilteredVs(), b=d.bench[W];
-  renderTrend(vs);
-  renderBestOf(vs,b);
-  renderKpiRow(vs,b);
-  renderDonuts(vs);
-  renderTimeChart(vs,b);
-  renderCtrTimeChart(vs,b);
-  renderNvGrowthLine(vs,b);
-  renderCtrImpScat();
-  renderRetDurScat(vs);
-  renderTopicChart(vs);
-  renderFmtChart(vs,b);
-  renderCtrSplit(vs);
-  renderAvdSplit(vs);
-  renderSvRatio(vs,b);
-  renderSnvRatio(vs,b);
-  renderLeaderboards(vs);
-  renderSubGrowth(vs,b);
-  renderTierTbl(vs,b);
-  renderCadence(vs);
-  renderTable(vs,b);
-}
-function renderFiltered(){if(parsedData)renderAll(parsedData);}
-
-function renderTrend(vs){
-  var sorted=vs.filter(function(v){return v.pub_date&&v['imp'+suf()]!=null;}).sort(function(a,b){return new Date(b.pub_date)-new Date(a.pub_date);});
-  if(sorted.length<6){document.getElementById('trend-content').innerHTML='<span style="color:var(--muted)">Need 6+ videos with data</span>';return;}
-  var r5=sorted.slice(0,5),p5=sorted.slice(5,10);
-  function tv(f){var rf=r5.filter(function(v){return v[f]!=null;}),pf=p5.filter(function(v){return v[f]!=null;});if(!rf.length||!pf.length)return null;var ar=rf.reduce(function(a,v){return a+v[f];},0)/rf.length,ap=pf.reduce(function(a,v){return a+v[f];},0)/pf.length;return ap>0?((ar-ap)/ap*100):null;}
-  function ti(lbl,p,tip){if(p===null)return'';var cls=Math.abs(p)<1?'flat':p>0?'up':'dn';var arr=Math.abs(p)<1?'—':p>0?'↑':'↓';return'<span class="trend-item" title="Last 5 vs previous 5: '+(tip||lbl)+'"><span class="tnm">'+lbl+'</span><span class="'+cls+'">'+arr+' '+Math.abs(p).toFixed(0)+'%</span></span>';}
-  var s=suf();
-  document.getElementById('trend-content').innerHTML='<span class="trend-lbl">Last 5 vs prev 5 →</span>'+ti('CTR',tv('ctr'+s))+ti('Impr.',tv('imp'+s))+ti('Views',tv('views'+s))+ti('Retention',tv('ret'+s))+ti('Subs',tv('sub'+s))+ti('NV Impr.',tv('nv_imp'+s));
-}
-
-function renderBestOf(vs,b){
-  function best(f){var a=vs.filter(function(v){return v[f]!=null;});return a.length?a.reduce(function(p,v){return v[f]>p[f]?v:p;}):null;}
-  var s=suf();
-  var bC=best('ctr'+s),bI=best('imp'+s),bR=best('ret'+s),bS=best('sub'+s);
-  function card(lbl,v,fFn,fmt,c){if(!v)return'<div class="best-card" style="border-left-color:'+c+'"><div class="best-lbl">'+lbl+'</div><div class="best-val" style="color:'+c+'">—</div></div>';return'<div class="best-card" style="border-left-color:'+c+'" onclick="openModal(\''+v.name.replace(/'/g,"\\'")+'\')" title="Click for full breakdown"><div class="best-lbl">'+lbl+'</div><div class="best-val" style="color:'+c+'">'+fmt(fFn(v))+'</div><div class="best-nm">'+v.name+'</div></div>';}
-  document.getElementById('best-row').innerHTML=card('Best CTR',bC,function(v){return v['ctr'+s];},function(x){return(x*100).toFixed(1)+'%';},'#4A9EE8')+card('Most Impressions',bI,function(v){return v['imp'+s];},function(x){return(x/1000).toFixed(1)+'K';},'#F0A030')+card('Best Retention',bR,function(v){return v['ret'+s];},function(x){return(x*100).toFixed(0)+'%';},'#1DB87A')+card('Most Subs',bS,function(v){return v['sub'+s];},function(x){return'+'+Math.round(x);},'#E060A0');
-}
-
-function renderKpiRow(vs,b){
-  var s=suf();
-  var svrs=vs.filter(function(v){return v['sub'+s]!=null&&v['views'+s]>0;}).map(function(v){return v['sub'+s]/v['views'+s]*100;});
-  var avgSvr=svrs.length?svrs.reduce(function(a,b){return a+b;})/svrs.length:null;
-  var snvrs=vs.filter(function(v){return v['sub'+s]!=null&&v['nv_views'+s]>0;}).map(function(v){return v['sub'+s]/v['nv_views'+s]*100;});
-  var avgSnvr=snvrs.length?snvrs.reduce(function(a,b){return a+b;})/snvrs.length:null;
-  var items=[
-    {k:'ctr',l:'Avg CTR',v:avnum(vs,'ctr'+s),fmt:function(x){return(x*100).toFixed(1)+'%';},bv:b.ctr,tip:'Average click-through rate. Below 5% = weak packaging. Above 10% = exceptional.'},
-    {k:'imp',l:'Avg Impressions',v:avnum(vs,'imp'+s),fmt:function(x){return(x/1000).toFixed(1)+'K';},bv:b.imp,tip:'How often YouTube shows your thumbnails. Rising = better distribution.'},
-    {k:'views',l:'Avg Views',v:avnum(vs,'views'+s),fmt:function(x){return Math.round(x).toLocaleString();},bv:b.views,tip:'Actual video views. Views = Impressions × CTR.'},
-    {k:'ret',l:'Avg Retention',v:avnum(vs,'ret'+s),fmt:function(x){return(x*100).toFixed(0)+'%';},bv:b.ret,tip:'Average % of video watched. Above 40% is strong. This signals content quality to the algorithm.'},
-    {k:'nv_ctr',l:'NV CTR',v:avnum(vs,'nv_ctr'+s),fmt:function(x){return(x*100).toFixed(1)+'%';},bv:b.nv_ctr,tip:'CTR specifically from new viewers. Measures cold audience appeal.'},
-    {k:'svr',l:'Sub/View %',v:avgSvr,fmt:function(x){return x.toFixed(3)+'%';},bv:null,tip:'What % of viewers subscribe. Higher = better video-to-subscriber conversion.'},
-    {k:'snvr',l:'Sub/NV %',v:avgSnvr,fmt:function(x){return x.toFixed(3)+'%';},bv:null,tip:'What % of NEW viewers subscribe. Your most important growth metric.'},
-    {k:'sub',l:'Avg Subs',v:avnum(vs,'sub'+s),fmt:function(x){return'+'+Math.round(x);},bv:b.sub,tip:'Average subscribers gained per video.'}
-  ];
-  function dd(val,bv){if(!bv||bv===0||val==null)return'';var p=(val-bv)/bv*100;var c=p>=0?'var(--teal)':'var(--coral)';return'<span style="font-size:9px;color:'+c+';margin-left:4px">'+(p>=0?'+':'')+p.toFixed(0)+'%</span>';}
-  document.getElementById('kpi-row').style.gridTemplateColumns='repeat('+items.length+',1fr)';
-  document.getElementById('kpi-row').innerHTML=items.map(function(it){var v=it.v;return'<div class="kpi-card" title="'+it.tip+'"><div class="kpi-label">'+it.l+'<span style="font-size:8px;color:var(--dim)"> ?</span></div><div class="kpi-value">'+(v!=null?it.fmt(v):'—')+dd(v,it.bv)+'</div></div>';}).join('');
-}
-
-function renderDonuts(vs){
-  dc('d1');dc('d2');
-  // Donut 1: NV / CV / RV
-  var s=suf();
-  var nv=0,cv=0,rv=0;vs.forEach(function(v){if(v['nv_imp'+s]!=null)nv+=v['nv_imp'+s];if(v['cv_imp'+s]!=null)cv+=v['cv_imp'+s];if(v['rv_imp'+s]!=null)rv+=v['rv_imp'+s];});
-  var total1=nv+cv+rv;
-  if(total1>0){
-    document.getElementById('d1-total').textContent=(total1/1000).toFixed(0)+'K';
-    charts.d1=new Chart(document.getElementById('donut1').getContext('2d'),{type:'doughnut',data:{labels:['New (NV)','Casual (CV)','Regular (RV)'],datasets:[{data:[+(nv/total1*100).toFixed(1),+(cv/total1*100).toFixed(1),+(rv/total1*100).toFixed(1)],backgroundColor:['#4A9EE8','#1DB87A','#F0A030'],borderWidth:0,hoverOffset:4}]},options:{responsive:false,cutout:'62%',plugins:{legend:{display:false},tooltip:{callbacks:{label:function(c){return' '+c.label+': '+c.raw+'%';}}}}}});
-    document.getElementById('donut1-legend').innerHTML=[['#4A9EE8','New (NV)',nv,'nv'],['#1DB87A','Casual (CV)',cv,'cv'],['#F0A030','Regular (RV)',rv,'rv']].map(function(x){var pct=(total1>0?(x[2]/total1*100):0).toFixed(0);return'<div class="donut-seg'+(donutFilter===x[3]?' active':'')+'" onclick="setDonutFilter(\''+x[3]+'\')"><span class="donut-dot" style="background:'+x[0]+'"></span><span class="donut-seg-name">'+x[1]+'</span><span class="donut-seg-val">'+(x[2]/1000).toFixed(1)+'K</span><span class="donut-seg-pct">'+pct+'%</span></div>';}).join('');
-  }
-  // Donut 2: NV_LEG / RV_LEG
-  var nvl=0,rvl=0;vs.forEach(function(v){if(v['nv_leg_imp'+s]!=null)nvl+=v['nv_leg_imp'+s];if(v['rv_leg_imp'+s]!=null)rvl+=v['rv_leg_imp'+s];});
-  var total2=nvl+rvl;
-  if(total2>0){
-    document.getElementById('d2-total').textContent=(total2/1000).toFixed(0)+'K';
-    charts.d2=new Chart(document.getElementById('donut2').getContext('2d'),{type:'doughnut',data:{labels:['New (NV_LEG)','Returning (RV_LEG)'],datasets:[{data:[+(nvl/total2*100).toFixed(1),+(rvl/total2*100).toFixed(1)],backgroundColor:['#8B80E8','#E060A0'],borderWidth:0,hoverOffset:4}]},options:{responsive:false,cutout:'62%',plugins:{legend:{display:false},tooltip:{callbacks:{label:function(c){return' '+c.label+': '+c.raw+'%';}}}}}});
-    document.getElementById('donut2-legend').innerHTML=[['#8B80E8','New (NV_LEG)',nvl],['#E060A0','Returning (RV_LEG)',rvl]].map(function(x){var pct=(total2>0?(x[2]/total2*100):0).toFixed(0);return'<div class="donut-seg"><span class="donut-dot" style="background:'+x[0]+'"></span><span class="donut-seg-name">'+x[1]+'</span><span class="donut-seg-val">'+(x[2]/1000).toFixed(1)+'K</span><span class="donut-seg-pct">'+pct+'%</span></div>';}).join('');
-  }
-}
-function setDonutFilter(seg){donutFilter=donutFilter===seg?null:seg;updateActiveFilters();if(parsedData)renderFiltered();}
-
-function renderTimeChart(vs,b){
-  dc('timp');
-  var field='imp'+suf();
-  var sorted=vs.filter(function(v){return v.pub_date&&v[field]!=null;}).sort(function(a,c){return new Date(a.pub_date)-new Date(c.pub_date);});
-  if(!sorted.length)return;
-  var data=sorted.map(function(v){return v[field];});
-  var avg=data.reduce(function(a,b){return a+b;})/data.length;
-  charts.timp=new Chart(document.getElementById('c-imp').getContext('2d'),{type:'bar',data:{labels:sorted.map(function(v){return v.pub_date.slice(5);}),datasets:[{data:data,backgroundColor:data.map(function(d){return d>=avg?'rgba(74,158,232,.8)':'rgba(100,100,115,.35)';}),borderWidth:0,barPercentage:.8},{data:Array(data.length).fill(avg),type:'line',borderColor:'#F0A030',borderWidth:1.5,borderDash:[4,3],pointRadius:0,fill:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{title:function(c){return sorted[c[0].dataIndex].name.slice(0,44)+'...';},label:function(c){return c.datasetIndex===0?' '+c.raw.toLocaleString()+' impr.':' '+Math.round(c.raw).toLocaleString()+' avg';}}}},scales:{x:{ticks:{color:M,font:{size:9},autoSkip:true,maxRotation:45},grid:{display:false}},y:{ticks:{color:M,font:{size:9},callback:function(v){return(v/1000).toFixed(0)+'K';}},grid:{color:GR},border:{display:false}}}}});
-}
-
-function renderCtrTimeChart(vs,b){
-  dc('tctr');
-  var s=suf();
-  var sorted=vs.filter(function(v){return v.pub_date&&v['nv_ctr'+s]!=null&&v['ctr'+s]!=null;}).sort(function(a,c){return new Date(a.pub_date)-new Date(c.pub_date);});
-  if(!sorted.length)return;
-  charts.tctr=new Chart(document.getElementById('c-ctr-time').getContext('2d'),{type:'line',data:{labels:sorted.map(function(v){return v.pub_date.slice(5);}),datasets:[{label:'NV CTR',data:sorted.map(function(v){return+(v['nv_ctr'+s]*100).toFixed(2);}),borderColor:'#4A9EE8',borderWidth:2,pointRadius:3,pointBackgroundColor:'#4A9EE8',fill:false,tension:.3},{label:'Total CTR',data:sorted.map(function(v){return+(v['ctr'+s]*100).toFixed(2);}),borderColor:'#F0A030',borderWidth:1.5,borderDash:[4,3],pointRadius:2,pointBackgroundColor:'#F0A030',fill:false,tension:.3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{title:function(c){return sorted[c[0].dataIndex].name.slice(0,44)+'...';},label:function(c){return' '+c.dataset.label+': '+c.raw.toFixed(1)+'%';}}}},scales:{x:{ticks:{color:M,font:{size:9},autoSkip:true,maxRotation:45},grid:{display:false}},y:{ticks:{color:M,font:{size:9},callback:function(v){return v+'%';}},grid:{color:GR},border:{display:false}}}}});
-}
-
-function renderNvGrowthLine(vs,b){
-  dc('nvg');
-  var s=suf();
-  var sorted=vs.filter(function(v){return v.pub_date&&v['nv_imp'+s]!=null;}).sort(function(a,c){return new Date(a.pub_date)-new Date(c.pub_date);});
-  if(!sorted.length)return;
-  var data=sorted.map(function(v){return v['nv_imp'+s];});
-  var avg=data.reduce(function(a,b){return a+b;})/data.length;
-  var peaks=data.map(function(d,i){return{i:i,mult:avg>0?d/avg:1};}).sort(function(a,b){return b.mult-a.mult;}).slice(0,3);
-  var peakIdx=peaks.map(function(p){return p.i;});
-  var ptColors=data.map(function(_,i){return peakIdx.indexOf(i)>=0?'#F0A030':'#4A9EE8';});
-  var ptRadius=data.map(function(_,i){return peakIdx.indexOf(i)>=0?7:3;});
-  var peakInfo=peaks[0]?'Peak: '+sorted[peaks[0].i].name.slice(0,30)+'... ('+peaks[0].mult.toFixed(1)+'x avg)':'';
-  document.getElementById('nv-peak-info').textContent=peakInfo;
-  charts.nvg=new Chart(document.getElementById('c-nv-growth').getContext('2d'),{type:'line',data:{labels:sorted.map(function(v){return v.pub_date.slice(5);}),datasets:[{data:data,borderColor:'#4A9EE8',borderWidth:2,pointBackgroundColor:ptColors,pointRadius:ptRadius,pointHoverRadius:9,fill:true,backgroundColor:'rgba(74,158,232,.06)',tension:.35},{data:Array(data.length).fill(avg),borderColor:'rgba(255,255,255,.18)',borderWidth:1.5,borderDash:[4,3],pointRadius:0,fill:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{title:function(c){return sorted[c[0].dataIndex].name;},label:function(c){if(c.datasetIndex===1)return' '+Math.round(c.raw).toLocaleString()+' avg';var mult=avg>0?(c.raw/avg).toFixed(2)+'x avg':'';return' '+c.raw.toLocaleString()+' NV impr. ('+mult+') — click for details';}}}},scales:{x:{ticks:{color:M,font:{size:9},autoSkip:true,maxRotation:45},grid:{display:false}},y:{ticks:{color:M,font:{size:9},callback:function(v){return(v/1000).toFixed(0)+'K';}},grid:{color:GR},border:{display:false}}},onClick:function(evt,el){if(el.length&&el[0].datasetIndex===0)openModal(sorted[el[0].index].name);}}});
-}
-
-function renderCtrImpScat(){
-  dc('scati');
-  if(!parsedData)return;
-  var vs=getFilteredVs(), s=suf(), b=parsedData.bench[W];
-  var xField=document.getElementById('scatter-x-sel')?document.getElementById('scatter-x-sel').value:'imp';
-  var xKey=xField+s;
-  var pts=vs.filter(function(v){return v['ctr'+s]!=null&&v[xKey]!=null;}).map(function(v){
-    var score=perfScore(v,b);var c=score>=75?'rgba(29,184,122,.8)':score>=50?'rgba(74,158,232,.7)':score>=25?'rgba(240,160,48,.7)':'rgba(232,84,42,.7)';
-    return{x:v[xKey],y:+(v['ctr'+s]*100).toFixed(2),n:v.name,r:5,c:c};
-  });
-  charts.scati=new Chart(document.getElementById('c-ctr-imp').getContext('2d'),{type:'scatter',data:{datasets:[{data:pts,backgroundColor:pts.map(function(p){return p.c;}),pointRadius:5,pointHoverRadius:8}]},options:{responsive:true,maintainAspectRatio:false,layout:{padding:10},plugins:{legend:{display:false},tooltip:{callbacks:{title:function(c){return c[0].raw.n.slice(0,44)+(c[0].raw.n.length>44?'...':'');},label:function(c){return(xField==='imp'?'Impressions: '+(c.raw.x/1000).toFixed(1)+'K  CTR: '+c.raw.y.toFixed(1)+'%':c.raw.x.toLocaleString()+' | '+c.raw.y.toFixed(1)+'%');}}}},scales:{x:{ticks:{color:M,font:{size:9},callback:function(v){return xField==='ctr'?(v*100).toFixed(1)+'%':(v/1000).toFixed(0)+'K';}},grid:{color:GR}},y:{title:{display:true,text:'CTR %',color:M,font:{size:9}},ticks:{color:M,font:{size:9},callback:function(v){return v+'%';}},grid:{color:GR}}},onClick:function(evt,el){if(el.length)openModal(pts[el[0].index].n);}}});
-}
-
-function renderRetDurScat(vs){
-  dc('scrd');
-  var s=suf();
-  var pts=vs.filter(function(v){return v.vid_dur_s!=null&&v['ret'+s]!=null;}).map(function(v){return{x:+(v.vid_dur_s/60).toFixed(1),y:+(v['ret'+s]*100).toFixed(1),n:v.name,t:v.topic};});
-  if(!pts.length)return;
-  charts.scrd=new Chart(document.getElementById('c-ret-dur').getContext('2d'),{type:'scatter',data:{datasets:[{data:pts,backgroundColor:pts.map(function(p){return(TC[p.t]||'#7a7a8c')+'BB';}),pointRadius:5,pointHoverRadius:8}]},options:{responsive:true,maintainAspectRatio:false,layout:{padding:8},plugins:{legend:{display:false},tooltip:{callbacks:{title:function(c){return c[0].raw.n.slice(0,44)+(c[0].raw.n.length>44?'...':'');},label:function(c){return'Duration: '+c.raw.x+'min  Retention: '+c.raw.y+'%';}}}},scales:{x:{title:{display:true,text:'Duration (min)',color:M,font:{size:9}},ticks:{color:M,font:{size:9}},grid:{color:GR}},y:{title:{display:true,text:'Retention %',color:M,font:{size:9}},ticks:{color:M,font:{size:9},callback:function(v){return v+'%';}},grid:{color:GR}}},onClick:function(evt,el){if(el.length)openModal(pts[el[0].index].n);}}});
-}
-
-function renderTopicChart(vs){
-  dc('tp');
-  var s=suf();
-  var field=topicMetric+s;
-  var raw=grpAvg(vs,function(v){return v.topic;},function(v){return v[field];});
-  var e=Object.keys(raw).map(function(k){return[k,raw[k]];}).sort(function(a,c){return c[1]-a[1];});
-  var isP=topicMetric==='ctr'||topicMetric==='ret';
-  charts.tp=new Chart(document.getElementById('c-topic').getContext('2d'),{type:'bar',data:{labels:e.map(function(x){return x[0];}),datasets:[{data:e.map(function(x){return isP?+(x[1]*100).toFixed(2):Math.round(x[1]);}),backgroundColor:e.map(function(x){return(TC[x[0]]||'#7a7a8c')+'CC';}),borderWidth:0}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:function(c){return' '+c.raw+(isP?'%':' impr.');}}}},scales:{x:{ticks:{color:M,font:{size:9},callback:function(v){return isP?v+'%':(v/1000).toFixed(0)+'K';}},grid:{color:GR},border:{display:false}},y:{ticks:{color:M,font:{size:10}},grid:{display:false}}}}});
-}
-
-function renderFmtChart(vs,b){
-  dc('fmt');
-  var s=suf();
-  var raw=grpAvg(vs,function(v){return v.title_format;},function(v){return v['ctr'+s];});
-  var e=Object.keys(raw).map(function(k){return[k,raw[k]];}).sort(function(a,c){return c[1]-a[1];});
-  charts.fmt=new Chart(document.getElementById('c-fmt').getContext('2d'),{type:'bar',data:{labels:e.map(function(x){return x[0];}),datasets:[{data:e.map(function(x){return+(x[1]*100).toFixed(2);}),backgroundColor:e.map(function(x){return x[1]>=b.ctr?'rgba(29,184,122,.8)':'rgba(232,84,42,.75)';}),borderWidth:0}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:function(c){return' '+c.raw.toFixed(1)+'% avg CTR';}}}},scales:{x:{ticks:{color:M,font:{size:9},callback:function(v){return v+'%';}},grid:{color:GR},border:{display:false}},y:{ticks:{color:M,font:{size:10}},grid:{display:false}}}}});
-}
-
-function renderCtrSplit(vs){
-  dc('ctrs');var s=suf();
-  var sorted=vs.filter(function(v){return v['nv_ctr'+s]!=null&&v['rv_ctr'+s]!=null&&v.pub_date;}).sort(function(a,c){return new Date(a.pub_date)-new Date(c.pub_date);});
-  if(!sorted.length)return;
-  charts.ctrs=new Chart(document.getElementById('c-ctr-split').getContext('2d'),{type:'bar',data:{labels:sorted.map(function(v){return v.pub_date.slice(5);}),datasets:[{label:'NV',data:sorted.map(function(v){return+(v['nv_ctr'+s]*100).toFixed(2);}),backgroundColor:'rgba(74,158,232,.75)',borderWidth:0,barPercentage:.45,categoryPercentage:.8},{label:'Returning',data:sorted.map(function(v){return+(v['rv_ctr'+s]*100).toFixed(2);}),backgroundColor:'rgba(240,160,48,.75)',borderWidth:0,barPercentage:.45,categoryPercentage:.8}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{title:function(c){return sorted[c[0].dataIndex].name.slice(0,44)+'...';},label:function(c){return' '+c.dataset.label+' CTR: '+c.raw.toFixed(1)+'%';}}}},scales:{x:{ticks:{color:M,font:{size:9},autoSkip:true,maxRotation:45},grid:{display:false}},y:{ticks:{color:M,font:{size:9},callback:function(v){return v+'%';}},grid:{color:GR},border:{display:false}}}}});
-}
-
-function renderAvdSplit(vs){
-  dc('avds');var s=suf();
-  var sorted=vs.filter(function(v){return v['nv_avd'+s]!=null&&v['rv_avd'+s]!=null&&v.pub_date;}).sort(function(a,c){return new Date(a.pub_date)-new Date(c.pub_date);});
-  if(!sorted.length)return;
-  charts.avds=new Chart(document.getElementById('c-avd-split').getContext('2d'),{type:'bar',data:{labels:sorted.map(function(v){return v.pub_date.slice(5);}),datasets:[{label:'NV',data:sorted.map(function(v){return+(v['nv_avd'+s]/60).toFixed(1);}),backgroundColor:'rgba(74,158,232,.75)',borderWidth:0,barPercentage:.45,categoryPercentage:.8},{label:'Returning',data:sorted.map(function(v){return+(v['rv_avd'+s]/60).toFixed(1);}),backgroundColor:'rgba(240,160,48,.75)',borderWidth:0,barPercentage:.45,categoryPercentage:.8}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{title:function(c){return sorted[c[0].dataIndex].name.slice(0,44)+'...';},label:function(c){return' '+c.dataset.label+' AVD: '+c.raw.toFixed(1)+'min';}}}},scales:{x:{ticks:{color:M,font:{size:9},autoSkip:true,maxRotation:45},grid:{display:false}},y:{ticks:{color:M,font:{size:9},callback:function(v){return v+'m';}},grid:{color:GR},border:{display:false}}}}});
-}
-
-function renderSvRatio(vs,b){
-  dc('svr');var s=suf();
-  var sorted=vs.filter(function(v){return v['sub'+s]!=null&&v['views'+s]>0&&v.pub_date;}).sort(function(a,c){return new Date(a.pub_date)-new Date(c.pub_date);});
-  if(!sorted.length)return;
-  var data=sorted.map(function(v){return+(v['sub'+s]/v['views'+s]*100).toFixed(4);});
-  var avg=data.reduce(function(a,b){return a+b;})/data.length;
-  charts.svr=new Chart(document.getElementById('c-sv-ratio').getContext('2d'),{type:'bar',data:{labels:sorted.map(function(v){return v.pub_date.slice(5);}),datasets:[{data:data,backgroundColor:data.map(function(d){return d>=avg?'rgba(29,184,122,.8)':'rgba(232,84,42,.6)';}),borderWidth:0,barPercentage:.8},{data:Array(data.length).fill(avg),type:'line',borderColor:'rgba(255,255,255,.2)',borderWidth:1.5,borderDash:[4,3],pointRadius:0,fill:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{title:function(c){return sorted[c[0].dataIndex].name.slice(0,44)+'...';},label:function(c){return c.datasetIndex===0?' '+c.raw+'% sub/view':' '+c.raw+'% avg';}}}},scales:{x:{ticks:{color:M,font:{size:9},autoSkip:true,maxRotation:45},grid:{display:false}},y:{ticks:{color:M,font:{size:9},callback:function(v){return v+'%';}},grid:{color:GR},border:{display:false}}},onClick:function(evt,el){if(el.length&&el[0].datasetIndex===0)openModal(sorted[el[0].index].name);}}});
-}
-
-function renderSnvRatio(vs,b){
-  dc('snvr');var s=suf();
-  var sorted=vs.filter(function(v){return v['sub'+s]!=null&&v['nv_views'+s]>0&&v.pub_date;}).sort(function(a,c){return new Date(a.pub_date)-new Date(c.pub_date);});
-  if(!sorted.length){var el=document.getElementById('c-snv-ratio');if(el)el.parentElement.innerHTML='<p style="color:var(--muted);font-size:11px;padding:10px 0">NV_VIEWS column not found in sheet</p>';return;}
-  var data=sorted.map(function(v){return+(v['sub'+s]/v['nv_views'+s]*100).toFixed(4);});
-  var avg=data.reduce(function(a,b){return a+b;})/data.length;
-  charts.snvr=new Chart(document.getElementById('c-snv-ratio').getContext('2d'),{type:'bar',data:{labels:sorted.map(function(v){return v.pub_date.slice(5);}),datasets:[{data:data,backgroundColor:data.map(function(d){return d>=avg?'rgba(74,158,232,.85)':'rgba(232,84,42,.6)';}),borderWidth:0,barPercentage:.8},{data:Array(data.length).fill(avg),type:'line',borderColor:'rgba(255,255,255,.2)',borderWidth:1.5,borderDash:[4,3],pointRadius:0,fill:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{title:function(c){return sorted[c[0].dataIndex].name.slice(0,44)+'...';},label:function(c){return c.datasetIndex===0?' '+c.raw+'% sub/NV':' '+c.raw+'% avg';}}}},scales:{x:{ticks:{color:M,font:{size:9},autoSkip:true,maxRotation:45},grid:{display:false}},y:{ticks:{color:M,font:{size:9},callback:function(v){return v+'%';}},grid:{color:GR},border:{display:false}}},onClick:function(evt,el){if(el.length&&el[0].datasetIndex===0)openModal(sorted[el[0].index].name);}}});
-}
-
-function renderLeaderboards(vs){
-  var s=suf();
-  function top5(arr,sortFn,fmt,color){
-    var sorted2=arr.filter(function(v){return sortFn(v)!=null;}).sort(function(a,b){return sortFn(b)-sortFn(a);}).slice(0,5);
-    var max=sorted2.length?sortFn(sorted2[0]):1;
-    return sorted2.map(function(v){var val=sortFn(v),pct=max>0?Math.round(val/max*100):0;var sh=v.name.length>32?v.name.slice(0,32)+'...':v.name;return'<div class="lb-row" onclick="openModal(\''+v.name.replace(/'/g,"\\'")+'\')"><div style="flex:1;min-width:0"><div style="font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="'+v.name+'">'+sh+'</div><div class="pbar-bg" style="margin-top:3px"><div class="pbar-fill" style="width:'+pct+'%;background:'+color+'"></div></div></div><span style="font-size:10px;font-family:var(--mono);color:'+color+';margin-left:8px;white-space:nowrap">'+fmt(val)+'</span></div>';}).join('')||'<div style="font-size:10px;color:var(--muted);padding:6px 0">No data</div>';}
-  document.getElementById('lb-nv-total').innerHTML=top5(vs,function(v){return v['nv_imp'+s];},function(x){return(x/1000).toFixed(1)+'K';},'#4A9EE8');
-  document.getElementById('lb-nv-ratio').innerHTML=top5(vs,function(v){return(v['nv_imp'+s]!=null&&v['imp'+s]>0)?v['nv_imp'+s]/v['imp'+s]:null;},function(x){return(x*100).toFixed(0)+'%';},'#4A9EE8');
-  document.getElementById('lb-rv-total').innerHTML=top5(vs,function(v){return v['rv_imp'+s];},function(x){return(x/1000).toFixed(1)+'K';},'#F0A030');
-  document.getElementById('lb-rv-ratio').innerHTML=top5(vs,function(v){return(v['rv_imp'+s]!=null&&v['imp'+s]>0)?v['rv_imp'+s]/v['imp'+s]:null;},function(x){return(x*100).toFixed(0)+'%';},'#F0A030');
-}
-
-function renderSubGrowth(vs,b){
-  dc('subg');var s=suf();
-  var sorted=vs.filter(function(v){return v.pub_date&&v['sub'+s]!=null;}).sort(function(a,c){return new Date(a.pub_date)-new Date(c.pub_date);});
-  if(!sorted.length)return;
-  var data=sorted.map(function(v){return v['sub'+s];});
-  var avg=b.sub||0;
-  charts.subg=new Chart(document.getElementById('c-sub-growth').getContext('2d'),{type:'bar',data:{labels:sorted.map(function(v){return v.pub_date.slice(5);}),datasets:[{data:data,backgroundColor:data.map(function(d){return d>=avg?'rgba(29,184,122,.8)':'rgba(232,84,42,.6)';}),borderWidth:0,barPercentage:.8},{data:Array(data.length).fill(avg),type:'line',borderColor:'rgba(255,255,255,.2)',borderWidth:1.5,borderDash:[4,3],pointRadius:0,fill:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{title:function(c){return sorted[c[0].dataIndex].name;},label:function(c){return c.datasetIndex===0?' +'+c.raw+' subs':' '+c.raw.toFixed(1)+' avg';}}}},scales:{x:{ticks:{color:M,font:{size:9},autoSkip:true,maxRotation:45},grid:{display:false}},y:{ticks:{color:M,font:{size:9}},grid:{color:GR},border:{display:false}}},onClick:function(evt,el){if(el.length)openModal(sorted[el[0].index].name);}}});
-}
-
-function renderTierTbl(vs,b){
-  var s=suf();
-  var rows=[1,2,3].map(function(t){
-    var m=vs.filter(function(v){return v.tier===t;});if(!m.length)return null;
-    var ctr=m.filter(function(v){return v['ctr'+s]!=null;}).map(function(v){return v['ctr'+s];});
-    var imp=m.filter(function(v){return v['imp'+s]!=null;}).map(function(v){return v['imp'+s];});
-    var ret=m.filter(function(v){return v['ret'+s]!=null;}).map(function(v){return v['ret'+s];});
-    var nv=m.filter(function(v){return v['nv_imp'+s]!=null;}).map(function(v){return v['nv_imp'+s];});
-    return{t:t,cnt:m.length,ctr:ctr.length?ctr.reduce(function(a,b){return a+b;})/ctr.length:null,imp:imp.length?imp.reduce(function(a,b){return a+b;})/imp.length:null,ret:ret.length?ret.reduce(function(a,b){return a+b;})/ret.length:null,nv:nv.length?nv.reduce(function(a,b){return a+b;})/nv.length:null,videos:m};
-  }).filter(Boolean);
-  var maxImp=Math.max.apply(null,rows.map(function(r){return r.imp||0;}));
-  var maxCtr=Math.max.apply(null,rows.map(function(r){return r.ctr||0;}));
-  var tcls=['tier-1','tier-2','tier-3'];
-  var html='<table style="width:100%;border-collapse:collapse;font-size:11px"><thead><tr style="border-bottom:0.5px solid var(--border)"><th style="font-size:9px;font-weight:400;color:var(--muted);padding:0 8px 7px;text-align:left;letter-spacing:.06em;text-transform:uppercase">Tier</th><th style="font-size:9px;font-weight:400;color:var(--muted);padding:0 8px 7px;text-align:left;letter-spacing:.06em;text-transform:uppercase">Videos</th><th style="font-size:9px;font-weight:400;color:var(--muted);padding:0 8px 7px;text-align:left;letter-spacing:.06em;text-transform:uppercase">Avg CTR</th><th style="font-size:9px;font-weight:400;color:var(--muted);padding:0 8px 7px;text-align:left;letter-spacing:.06em;text-transform:uppercase">Avg Impr.</th><th style="font-size:9px;font-weight:400;color:var(--muted);padding:0 8px 7px;text-align:left;letter-spacing:.06em;text-transform:uppercase">Avg Retention</th><th style="font-size:9px;font-weight:400;color:var(--muted);padding:0 8px 7px;text-align:left;letter-spacing:.06em;text-transform:uppercase">Avg NV Impr.</th></tr></thead><tbody>';
-  rows.forEach(function(r,i){
-    var cc=r.ctr>=b.ctr?'var(--teal)':'var(--coral)';
-    html+='<tr style="border-bottom:0.5px solid var(--border);cursor:pointer" onclick="openTierModal('+r.t+')" onmouseover="this.style.background=\'rgba(255,255,255,.02)\'" onmouseout="this.style.background=\'\'">'+
-      '<td style="padding:7px 8px"><span class="'+tcls[i]+'">'+TIER_NAMES[r.t]+'</span></td>'+
-      '<td style="padding:7px 8px;font-family:var(--mono);color:var(--muted)">'+r.cnt+'</td>'+
-      '<td style="padding:7px 8px"><span style="font-family:var(--mono);color:'+cc+'">'+(r.ctr!=null?(r.ctr*100).toFixed(1)+'%':'—')+'</span><span class="pbar-bg" style="display:inline-block;margin-left:6px;min-width:50px"><span class="pbar-fill" style="width:'+Math.round((r.ctr||0)/maxCtr*100)+'%;background:'+cc+'"></span></span></td>'+
-      '<td style="padding:7px 8px;font-family:var(--mono);color:var(--muted)">'+(r.imp!=null?(r.imp/1000).toFixed(1)+'K':'—')+'<span class="pbar-bg" style="display:inline-block;margin-left:6px;min-width:40px"><span class="pbar-fill" style="width:'+Math.round((r.imp||0)/maxImp*100)+'%;background:var(--blue)"></span></span></td>'+
-      '<td style="padding:7px 8px;font-family:var(--mono);color:var(--muted)">'+(r.ret!=null?(r.ret*100).toFixed(0)+'%':'—')+'</td>'+
-      '<td style="padding:7px 8px;font-family:var(--mono);color:var(--muted)">'+(r.nv!=null?(r.nv/1000).toFixed(1)+'K':'—')+'</td>'+
-      '</tr>';
-  });
-  document.getElementById('tier-tbl-wrap').innerHTML=html+'</tbody></table><div style="font-size:9px;color:var(--dim);margin-top:7px">↑ Click a row to see all matching videos</div>';
-}
-
-function renderCadence(vs){
-  dc('cad');
-  var sorted=vs.filter(function(v){return v.pub_date;}).sort(function(a,b){return new Date(a.pub_date)-new Date(b.pub_date);});
-  if(sorted.length<2)return;
-  var gaps=[],labels=[];
-  for(var i=1;i<sorted.length;i++){gaps.push(Math.round((new Date(sorted[i].pub_date)-new Date(sorted[i-1].pub_date))/86400000));labels.push(sorted[i].pub_date.slice(5));}
-  charts.cad=new Chart(document.getElementById('c-cadence').getContext('2d'),{type:'bar',data:{labels:labels,datasets:[{data:gaps,backgroundColor:gaps.map(function(g){return g>14?'rgba(232,84,42,.7)':g>7?'rgba(240,160,48,.7)':'rgba(29,184,122,.7)';}),borderWidth:0,barPercentage:.75},{data:Array(gaps.length).fill(7),type:'line',borderColor:'rgba(255,255,255,.18)',borderWidth:1.5,borderDash:[3,3],pointRadius:0,fill:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{title:function(c){return sorted[c[0].dataIndex+1]?sorted[c[0].dataIndex+1].name.slice(0,44):'';},label:function(c){return c.datasetIndex===0?' '+c.raw+' days since last upload':' 7-day target';}}}},scales:{x:{ticks:{color:M,font:{size:9},autoSkip:true,maxRotation:45},grid:{display:false}},y:{ticks:{color:M,font:{size:9},callback:function(v){return v+'d';}},grid:{color:GR},border:{display:false}}}}});
-}
-
-function renderTable(vs,b){
-  var filtered=vs.filter(function(v){
-    if(filterState.text&&!v.name.toLowerCase().includes(filterState.text.toLowerCase()))return false;
-    if(filterState.topic&&v.topic!==filterState.topic)return false;
-    if(filterState.format&&v.title_format!==filterState.format)return false;
-    if(filterState.tier&&v.tier!==parseInt(filterState.tier))return false;
-    return true;
-  });
-  document.getElementById('tbl-cnt').textContent=filtered.length+' of '+vs.length+' videos';
-  var s=suf();
-  var fmap={imp:'imp'+s,views:'views'+s,ctr:'ctr'+s,ret:'ret'+s,subs:'sub'+s,likes:'likes'+s,nv:'nv_imp'+s,rv:'rv_imp'+s,nvctr:'nv_ctr'+s,date:'pub_date',dur:'vid_dur_s'};
-  filtered=filtered.slice().sort(function(a,c){
-    var col=sortState.col,dir=sortState.dir,av,cv;
-    if(col==='score'){av=perfScore(a,b);cv=perfScore(c,b);}else if(col==='title'){av=a.name;cv=c.name;}else if(col==='svr'){av=a['views'+s]>0?a['sub'+s]/a['views'+s]:null;cv=c['views'+s]>0?c['sub'+s]/c['views'+s]:null;}else if(col==='snvr'){av=a['nv_views'+s]>0?a['sub'+s]/a['nv_views'+s]:null;cv=c['nv_views'+s]>0?c['sub'+s]/c['nv_views'+s]:null;}else{av=a[fmap[col]||'imp'+s];cv=c[fmap[col]||'imp'+s];}
-    if(av==null)return 1;if(cv==null)return-1;return dir==='desc'?(cv>av?1:cv<av?-1:0):(av>cv?1:av<cv?-1:0);
-  });
-  function cval(val,bv){if(val==null)return'cn';if(bv<=0)return'cn';var r=val/bv;return r>=1.15?'cg':r>=0.85?'cy':'cr';}
-  function th(l,c2,tip){var sorted=sortState.col===c2;var arr=sorted?(sortState.dir==='desc'?' ↓':' ↑'):'';return'<th class="'+(sorted?'sorted':'')+'" onclick="setSort(\''+c2+'\')" title="'+(tip||'')+'">'+l+arr+'</th>';}
-  function setSort(col){sortState.col===col?sortState.dir=sortState.dir==='desc'?'asc':'desc':(sortState.col=col,sortState.dir='desc');if(parsedData)renderTable(getFilteredVs(),parsedData.bench[W]);}
-  window.setSort=setSort;
-
-  var rows=filtered.map(function(v,i){
-    var d=sf(v);
-    var svr=d.views>0&&d.sub!=null?(d.sub/d.views*100).toFixed(3)+'%':null;
-    var snvr=v['nv_views'+s]>0&&d.sub!=null?(d.sub/v['nv_views'+s]*100).toFixed(3)+'%':null;
-    var sc=perfScore(v,b);
-    var scHtml='<span class="cn">—</span>';
-    if(sc!=null){var scC=sc>=75?'var(--teal)':sc>=50?'var(--blue)':sc>=25?'var(--amber)':'var(--coral)';var scBg=sc>=75?'rgba(29,184,122,.12)':sc>=50?'rgba(74,158,232,.12)':sc>=25?'rgba(240,160,48,.12)':'rgba(232,84,42,.12)';scHtml='<span class="score-pill" style="background:'+scBg+';color:'+scC+'">'+sc+'</span>';}
-    var tier=v.tier;var tb=tier?'<span class="tier-'+tier+'">T'+tier+'</span> ':'';
-    var nm=v.name,sh=nm.length>38?nm.slice(0,38)+'...':nm,tc=TC[v.topic]||'#7a7a8c';
-    var durMin=v.vid_dur_s?Math.round(v.vid_dur_s/60)+'m':null;
-    return'<tr onclick="openModal(\''+nm.replace(/'/g,"\\'")+'\')">'+
-      '<td class="cn" style="width:22px">'+(i+1)+'</td>'+
-      '<td title="'+nm.replace(/"/g,'&quot;')+'" style="max-width:200px">'+tb+sh+'</td>'+
-      '<td class="cn" style="font-size:10px">'+(v.pub_date||'—')+'</td>'+
-      '<td><span class="tbadge" style="background:'+tc+'22;color:'+tc+'">'+(v.topic||'—')+'</span></td>'+
-      '<td>'+scHtml+'</td>'+
-      '<td class="mono '+cval(d.imp,b.imp)+'">'+(d.imp!=null?(d.imp/1000).toFixed(1)+'K':'—')+'</td>'+
-      '<td class="mono '+cval(d.nv_imp,b.nv_imp)+'">'+(d.nv_imp!=null?(d.nv_imp/1000).toFixed(1)+'K':'—')+'</td>'+
-      '<td class="mono '+cval(d.rv_imp,b.rv_imp)+'">'+(d.rv_imp!=null?(d.rv_imp/1000).toFixed(1)+'K':'—')+'</td>'+
-      '<td class="mono '+cval(d.views,b.views)+'">'+(d.views!=null?Math.round(d.views).toLocaleString():'—')+'</td>'+
-      '<td class="mono '+cval(d.ctr,b.ctr)+'" style="font-weight:600">'+(d.ctr!=null?(d.ctr*100).toFixed(1)+'%':'—')+'</td>'+
-      '<td class="mono '+cval(d.nv_ctr,b.nv_ctr)+'">'+(d.nv_ctr!=null?(d.nv_ctr*100).toFixed(1)+'%':'—')+'</td>'+
-      '<td class="mono '+cval(d.ret,b.ret)+'">'+(d.ret!=null?(d.ret*100).toFixed(0)+'%':'—')+'</td>'+
-      '<td class="mono cn">'+(d.sub!=null?'+'+Math.round(d.sub):'—')+'</td>'+
-      '<td class="mono cn">'+(svr||'—')+'</td>'+
-      '<td class="mono cn">'+(snvr||'—')+'</td>'+
-      '<td class="mono cn">'+(durMin||'—')+'</td>'+
-      '</tr>';
-  }).join('');
-
-  document.getElementById('main-tbl').innerHTML='<table class="data-table"><thead><tr>'+
-    '<th>#</th>'+th('Title','title')+th('Date','date')+th('Topic','topic')+th('Score','score','0-100 composite performance score')+
-    th('Impr.','imp')+th('NV Impr.','nv','New viewer impressions')+th('RV Impr.','rv','Returning viewer impressions')+
-    th('Views','views')+th('CTR','ctr')+th('NV CTR','nvctr','New viewer CTR')+th('Retention','ret')+th('Subs','subs')+
-    th('Sub/View','svr','Subscribers per view — conversion rate')+th('Sub/NV','snvr','Subscribers per new viewer — growth conversion')+
-    th('Duration','dur')+
-    '</tr></thead><tbody>'+rows+'</tbody></table>'+
-    '<div style="font-size:9px;color:var(--dim);padding:7px 0;display:flex;gap:12px"><span style="color:var(--teal)">■ Green = above avg</span><span style="color:var(--amber)">■ Yellow = near avg</span><span style="color:var(--coral)">■ Red = below avg</span></div>';
-}
-
-// MODALS
-function openModal(name){
-  if(!parsedData)return;
-  var v=parsedData.videos.find(function(x){return x.name===name;});
-  if(!v)return;
-  var b=parsedData.bench[W];
-  var sc=perfScore(v,b);
-  var scC=sc!=null?(sc>=75?'var(--teal)':sc>=50?'var(--blue)':sc>=25?'var(--amber)':'var(--coral)'):'var(--muted)';
-  var tc=TC[v.topic]||'#7a7a8c';
-  document.getElementById('modal-title').textContent=v.name;
-  document.getElementById('modal-meta').innerHTML=
-    (v.pub_date?'<span>📅 '+v.pub_date+'</span>':'')+
-    (v.topic?'<span style="background:'+tc+'22;color:'+tc+';padding:2px 7px;border-radius:4px">'+v.topic+'</span>':'')+
-    (v.title_format?'<span>'+v.title_format+'</span>':'')+
-    (v.hook?'<span>Hook: '+v.hook+'</span>':'')+
-    (v.tier?'<span class="tier-'+v.tier+'">Tier '+v.tier+': '+TIER_NAMES[v.tier]+'</span>':'')+
-    (sc!=null?'<span style="color:'+scC+';font-family:var(--mono)">Score: '+sc+'/100</span>':'')+
-    (v.vid_dur_s?'<span>'+Math.round(v.vid_dur_s/60)+'min video</span>':'');
-
-  var body='';
-  ['24h','7d','28d'].forEach(function(s){
-    var suf=s==='24h'?'_24h':s==='7d'?'_7d':'_28d';
-    var bb=parsedData.bench[s];
-    var imp=v['imp'+suf],views=v['views'+suf],ctr=v['ctr'+suf],ret=v['ret'+suf],sub=v['sub'+suf],likes=v['likes'+suf];
-    var nv_imp=v['nv_imp'+suf],cv_imp=v['cv_imp'+suf],rv_imp=v['rv_imp'+suf];
-    var nv_ctr=v['nv_ctr'+suf],rv_ctr=v['rv_ctr'+suf];
-    var nv_avd=v['nv_avd'+suf],rv_avd=v['rv_avd'+suf];
-    var svr=views>0&&sub!=null?(sub/views*100).toFixed(3)+'%':null;
-    var snvr=v['nv_views'+suf]>0&&sub!=null?(sub/v['nv_views'+suf]*100).toFixed(3)+'%':null;
-    // Growth multipliers
-    var impMult=bb.imp>0&&imp!=null?(imp/bb.imp).toFixed(2)+'x avg':null;
-    var ctrMult=bb.ctr>0&&ctr!=null?(ctr/bb.ctr).toFixed(2)+'x avg':null;
-    function mcard(lbl,val,bv,fmt,tip){
-      var c=val!=null&&bv>0?(val>=bv*1.1?'var(--teal)':val>=bv*0.9?'var(--amber)':'var(--coral)'):'var(--muted)';
-      var mult=val!=null&&bv>0?'('+(val/bv).toFixed(2)+'x avg)':'';
-      return'<div class="m-card" title="'+(tip||'')+' '+mult+'"><div class="m-card-lbl">'+lbl+'</div><div class="m-card-val" style="color:'+c+'">'+(val!=null?fmt(val):'—')+'</div><div class="m-card-sub">'+mult+'</div></div>';
-    }
-    body+='<div class="modal-section-lbl">'+s.toUpperCase()+' window</div><div class="modal-grid">'+
-      mcard('Impressions',imp,bb.imp,function(x){return(x/1000).toFixed(1)+'K';},'How often thumbnail was shown. ')+
-      mcard('Views',views,bb.views,function(x){return Math.round(x).toLocaleString();},'Total video plays')+
-      mcard('CTR',ctr,bb.ctr,function(x){return(x*100).toFixed(1)+'%';},'Click-through rate. Measures packaging strength.')+
-      mcard('Retention',ret,bb.ret,function(x){return(x*100).toFixed(0)+'%';},'% of video watched. Measures content quality.')+
-      mcard('NV CTR',nv_ctr,bb.nv_ctr,function(x){return(x*100).toFixed(1)+'%';},'CTR for new viewers only — cold audience appeal')+
-      mcard('RV CTR',rv_ctr,bb.rv_ctr||0,function(x){return(x*100).toFixed(1)+'%';},'CTR for returning viewers')+
-      mcard('Subs Gained',sub,0,function(x){return'+'+Math.round(x);},'Subscriber conversions')+
-      mcard('Likes',likes,0,function(x){return Math.round(x);},'Engagement signal')+
-      mcard('NV Impressions',nv_imp,bb.nv_imp,function(x){return(x/1000).toFixed(1)+'K';},'Impressions to new viewers')+
-      mcard('RV Impressions',rv_imp,bb.rv_imp||0,function(x){return(x/1000).toFixed(1)+'K';},'Impressions to returning viewers')+
-      mcard('NV AVD',nv_avd,bb.nv_avd||0,function(x){return(x/60).toFixed(1)+'min';},'New viewer avg watch time')+
-      mcard('RV AVD',rv_avd,bb.rv_avd||0,function(x){return(x/60).toFixed(1)+'min';},'Returning viewer avg watch time')+
-      '<div class="m-card"><div class="m-card-lbl">Sub/View %</div><div class="m-card-val" style="color:var(--muted)">'+(svr||'—')+'</div><div class="m-card-sub">Viewer → sub rate</div></div>'+
-      '<div class="m-card"><div class="m-card-lbl">Sub/NV %</div><div class="m-card-val" style="color:var(--muted)">'+(snvr||'—')+'</div><div class="m-card-sub">New viewer → sub rate</div></div>'+
-      '</div>';
-  });
-
-  // WHY analysis
-  var d=sf(v);
-  var issues=[],wins=[];
-  if(d.ctr!=null&&b.ctr>0){if(d.ctr<b.ctr*0.85)issues.push('CTR is below average — packaging (title/thumbnail) needs work');else if(d.ctr>b.ctr*1.15)wins.push('Strong CTR — title and thumbnail are compelling');}
-  if(d.ret!=null&&b.ret>0){if(d.ret<b.ret*0.85)issues.push('Retention below average — content hook or pacing may need improvement');else if(d.ret>b.ret*1.15)wins.push('High retention — content quality is strong');}
-  if(d.nv_ctr!=null&&d.ctr!=null){var gap=d.ctr-d.nv_ctr;if(gap>0.02)issues.push('NV CTR significantly lower than total CTR — title works for fans but not cold audiences');else if(gap<0.005)wins.push('NV CTR close to total CTR — packaging works for cold audiences too');}
-  if(d.nv_imp!=null&&d.imp!=null&&d.imp>0){var nvShare=d.nv_imp/d.imp;if(nvShare>0.5)wins.push('High new viewer share ('+Math.round(nvShare*100)+'%) — strong discovery');else if(nvShare<0.25)issues.push('Low new viewer share ('+Math.round(nvShare*100)+'%) — mainly reaching existing audience');}
-  if(issues.length||wins.length){
-    body+='<div class="modal-section-lbl">Why is this video performing like this?</div>';
-    if(wins.length)body+='<div style="margin-bottom:8px">'+wins.map(function(w){return'<div style="display:flex;gap:7px;align-items:flex-start;margin-bottom:5px;font-size:11px"><span style="color:var(--teal);margin-top:1px">✓</span><span style="color:var(--muted);line-height:1.5">'+w+'</span></div>';}).join('')+'</div>';
-    if(issues.length)body+=issues.map(function(w){return'<div style="display:flex;gap:7px;align-items:flex-start;margin-bottom:5px;font-size:11px"><span style="color:var(--coral);margin-top:1px">⚠</span><span style="color:var(--muted);line-height:1.5">'+w+'</span></div>';}).join('');
-  }
-
-  document.getElementById('modal-body').innerHTML=body;
-  document.getElementById('modal-overlay').classList.add('open');
-}
-
-function openTierModal(t){
-  if(!parsedData)return;
-  var vs=parsedData.videos.filter(function(v){return v.tier===t;});
-  var b=parsedData.bench[W];var s=suf();
-  document.getElementById('modal-title').textContent=TIER_NAMES[t];
-  document.getElementById('modal-meta').innerHTML='<span>'+vs.length+' videos</span><span style="color:var(--muted)">Click any video for full breakdown</span>';
-  var sorted=vs.slice().sort(function(a,c){return(c['imp'+s]||0)-(a['imp'+s]||0);});
-  document.getElementById('modal-body').innerHTML='<div style="display:flex;flex-direction:column;gap:6px">'+sorted.map(function(v){
-    var d=sf(v);var tc=TC[v.topic]||'#7a7a8c';
-    return'<div style="background:var(--bg3);border-radius:8px;padding:10px 13px;cursor:pointer;transition:background .12s" onclick="openModal(\''+v.name.replace(/'/g,"\\'")+'\')">'+
-      '<div style="font-size:12px;font-weight:500;margin-bottom:6px;line-height:1.4">'+v.name+'</div>'+
-      '<div style="display:flex;gap:12px;flex-wrap:wrap;font-size:10px">'+
-      '<span>Impr: <span style="font-family:var(--mono);color:'+(d.imp>=b.imp?'var(--teal)':'var(--coral)')+'">'+( d.imp!=null?(d.imp/1000).toFixed(1)+'K':'—')+'</span></span>'+
-      '<span>CTR: <span style="font-family:var(--mono);color:'+(d.ctr>=b.ctr?'var(--teal)':'var(--coral)')+'">'+( d.ctr!=null?(d.ctr*100).toFixed(1)+'%':'—')+'</span></span>'+
-      '<span>NV%: <span style="font-family:var(--mono);color:var(--muted)">'+(d.imp>0&&d.nv_imp!=null?Math.round(d.nv_imp/d.imp*100)+'%':'—')+'</span></span>'+
-      '<span>Ret: <span style="font-family:var(--mono);color:var(--muted)">'+( d.ret!=null?(d.ret*100).toFixed(0)+'%':'—')+'</span></span>'+
-      (v.pub_date?'<span style="color:var(--dim)">'+v.pub_date+'</span>':'')+
-      '</div></div>';
-  }).join('')+'</div>';
-  document.getElementById('modal-overlay').classList.add('open');
-}
-function closeModal(){document.getElementById('modal-overlay').classList.remove('open');}
-
-function calcCustomMetric(){
-  if(!parsedData)return;
-  var a=document.getElementById('cm-a').value;
-  var op=document.getElementById('cm-op').value;
-  var b2=document.getElementById('cm-b').value;
-  var vs=getFilteredVs();
-  var results=vs.filter(function(v){return v[a]!=null&&v[b2]!=null;}).map(function(v){
-    var av=v[a],bv=v[b2];
-    if(op==='div')return bv!==0?av/bv:null;
-    if(op==='mul')return av*bv;
-    if(op==='sub')return av-bv;
-    return null;
-  }).filter(function(x){return x!=null;});
-  if(!results.length){document.getElementById('cm-result').textContent='No data';return;}
-  var avg=results.reduce(function(a,b){return a+b;})/results.length;
-  document.getElementById('cm-result').textContent='Avg: '+avg.toFixed(3);
-  // Mini chart
-  dc('cust');
-  document.getElementById('cm-chart-wrap').style.display='block';
-  var sorted=vs.filter(function(v){return v[a]!=null&&v[b2]!=null&&v.pub_date;}).sort(function(x,y){return new Date(x.pub_date)-new Date(y.pub_date);});
-  var data2=sorted.map(function(v){var av2=v[a],bv2=v[b2];if(op==='div')return bv2!==0?+(av2/bv2).toFixed(4):null;if(op==='mul')return av2*bv2;if(op==='sub')return av2-bv2;return null;});
-  charts.cust=new Chart(document.getElementById('c-custom').getContext('2d'),{type:'line',data:{labels:sorted.map(function(v){return v.pub_date.slice(5);}),datasets:[{data:data2,borderColor:'#8B80E8',borderWidth:2,pointRadius:3,pointBackgroundColor:'#8B80E8',fill:true,backgroundColor:'rgba(139,128,232,.07)',tension:.3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{title:function(c){return sorted[c[0].dataIndex].name.slice(0,44)+'...';},label:function(c){return' '+c.raw;}}}},scales:{x:{ticks:{color:M,font:{size:9},autoSkip:true,maxRotation:45},grid:{display:false}},y:{ticks:{color:M,font:{size:9}},grid:{color:GR},border:{display:false}}}}});
-}
-
-function exportCSV(){
-  if(!parsedData)return;
-  var vs=getFilteredVs(),s=suf();
-  var headers=['Name','Date','Topic','Format','Hook','Tier','Impressions','NV_Impressions','RV_Impressions','Views','CTR','NV_CTR','Retention','Subs','Sub_View_Ratio','Sub_NV_Ratio','Score'];
-  var rows=vs.map(function(v){
-    var d=sf(v);var sc=perfScore(v,parsedData.bench[W]);
-    var svr=d.views>0&&d.sub!=null?(d.sub/d.views).toFixed(6):'';
-    var snvr=v['nv_views'+s]>0&&d.sub!=null?(d.sub/v['nv_views'+s]).toFixed(6):'';
-    return['"'+v.name.replace(/"/g,'""')+'"',v.pub_date||'',v.topic||'',v.title_format||'',v.hook||'',v.tier||'',d.imp||'',d.nv_imp||'',d.rv_imp||'',d.views||'',d.ctr!=null?(d.ctr*100).toFixed(2):'',d.nv_ctr!=null?(d.nv_ctr*100).toFixed(2):'',d.ret!=null?(d.ret*100).toFixed(1):'',d.sub||'',svr,snvr,sc||''].join(',');
-  });
-  var csv=[headers.join(',')].concat(rows).join('\n');
-  var a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);a.download='geoff_analytics_'+W+'_'+new Date().toISOString().slice(0,10)+'.csv';a.click();
-}
-function exportTableHTML(){
-  if(!parsedData)return;
-  alert('Right-click the table and choose "Save as" to export as HTML, or use Export CSV for data.');
-}
-function showExport(){
-  var choice=confirm('Export data as CSV?\n\nClick OK for CSV export.\nClick Cancel to dismiss.');
-  if(choice)exportCSV();
-}
-</script>
-EOF
-wc -c /tmp/dash_part2.js</body></html>
+<!-- SETTINGS MODAL -->
+<div id="settings-modal" onclick="if(event.target===this)closeSettings()">
+  <div class="settings-box">
+    <div class="settings-hd">
+      <h3>⚙ Personal Thresholds</h3>
+      <button class="mclose" onclick="closeSettings()" style="position:static">✕</button>
+    </div>
+    <div class="settings-body">
+      <p style="font-size:11px;color:var(--muted);margin-bottom:14px;line-height:1.6">Set your personal floor targets. Table rows turn <span style="color:var(--teal)">green</span> when above your target, <span style="color:var(--amber)">yellow</span> when within 15%, <span style="color:var(--coral)">red</span> when below. Channel averages shown for reference.</p>
+      <div id="thresh-form"></div>
+      <div style="display:flex;gap:8px;margin-top:16px">
+        <button class="btn btn-p btn-sm" onclick="saveThresholds()">Save thresholds</button>
+        <button class="btn btn-g btn-sm" onclick="resetThresholds()">Reset to channel avg</button>
+      </div>
+    </div>
+  </div>
+</div>
