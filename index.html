@@ -950,7 +950,6 @@ function renderKpis(vs,b){
     {k:'sub',l:'Avg Subs',v:avf(vs,'sub_'+w),fmt:function(x){return'+'+Math.round(x);},tk:null,tip:'Average subscribers gained per video in this window.'}
   ];
   function dd(val,tk){if(!tk)return'';var t=THRESH[tk];if(!t||t===0||val==null)return'';var p=(val-t)/t*100;var c=p>=0?'var(--teal)':'var(--coral)';return'<span class="kpi-d" style="color:'+c+'">'+(p>=0?'+':'')+p.toFixed(0)+'% vs target</span>';}
-  document.getElementById('kpi-grid').style.gridTemplateColumns='repeat('+items.length+',1fr)';
   document.getElementById('kpi-row').style.gridTemplateColumns='repeat('+items.length+',1fr)';
   document.getElementById('kpi-row').innerHTML=items.map(function(it){
     return'<div class="kpicard" title="'+it.tip+'"><div class="kpi-lbl">'+it.l+' <span class="q">?</span></div>'+
